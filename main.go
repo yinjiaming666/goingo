@@ -11,7 +11,7 @@ import (
 
 var mode = flag.String("mode", "dev", "-mode=prod,-mode=dev")
 
-// var serverName = tools.GetConfig(*mode, "server", "name")
+var serverName = tools.GetConfig(*mode, "server", "name")
 var initDb = flag.String("initDb", "false", "-initDb=true, -initDb=false")
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	model.InitRedis(&model.RedisConf{
 		Ip:         tools.GetConfig(*mode, "redis", "ip"),
 		Port:       tools.GetConfig(*mode, "redis", "port"),
-		GlobalName: tools.GetConfig(*mode, "server", "name"),
+		GlobalName: serverName,
 	})
 
 	if *initDb == "true" {
