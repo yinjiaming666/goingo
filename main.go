@@ -2,16 +2,16 @@ package main
 
 import (
 	"flag"
-	"goingo/database"
-	"goingo/logger"
-	"goingo/router"
-	"goingo/utils"
+	"goingo/internal/model"
+	"goingo/internal/router"
+	"goingo/tools"
+	"goingo/tools/logger"
 	"time"
 )
 
 var mode = flag.String("mode", "dev", "-mode=prod,-mode=dev")
 
-// var serverName = utils.GetConfig(*mode, "server", "name")
+// var serverName = tools.GetConfig(*mode, "server", "name")
 var initDb = flag.String("initDb", "false", "-initDb=true, -initDb=false")
 
 func main() {
@@ -20,32 +20,31 @@ func main() {
 	time.Local = loc
 
 	logger.InitLog()
-
-	database.InitDb(&database.DbConf{
-		UserName: utils.GetConfig(*mode, "mysql", "username"),
-		Password: utils.GetConfig(*mode, "mysql", "password"),
-		Ip:       utils.GetConfig(*mode, "mysql", "ip"),
-		Port:     utils.GetConfig(*mode, "mysql", "port"),
-		DbName:   utils.GetConfig(*mode, "mysql", "db_name"),
+	model.InitDb(&model.DbConf{
+		UserName: tools.GetConfig(*mode, "mysql", "username"),
+		Password: tools.GetConfig(*mode, "mysql", "password"),
+		Ip:       tools.GetConfig(*mode, "mysql", "ip"),
+		Port:     tools.GetConfig(*mode, "mysql", "port"),
+		DbName:   tools.GetConfig(*mode, "mysql", "db_name"),
 	})
 
-	database.InitRedis(&database.RedisConf{
-		Ip:         utils.GetConfig(*mode, "redis", "ip"),
-		Port:       utils.GetConfig(*mode, "redis", "port"),
-		GlobalName: utils.GetConfig(*mode, "server", "name"),
+	model.InitRedis(&model.RedisConf{
+		Ip:         tools.GetConfig(*mode, "redis", "ip"),
+		Port:       tools.GetConfig(*mode, "redis", "port"),
+		GlobalName: tools.GetConfig(*mode, "server", "name"),
 	})
 
 	if *initDb == "true" {
 		logger.Info("start init table ====================")
-		model := new(database.MysqlBaseModel)
-		model.CreateTable(database.User{})
-		model.CreateTable(database.Token{})
-		model.CreateTable(database.Article{})
-		model.CreateTable(database.Admin{})
-		model.CreateTable(database.Cate{})
+		m := new(model.MysqlBaseModel)
+		m.CreateTable(model.User{})
+		m.CreateTable(model.Token{})
+		m.CreateTable(model.Article{})
+		m.CreateTable(model.Admin{})
+		m.CreateTable(model.Cate{})
 		logger.Info("end init table ====================")
 	}
 
-	port := utils.GetConfig(*mode, "server", "port")
+	port := tools.GetConfig(*mode, "server", "port")
 	router.InitRouter(port)
 }

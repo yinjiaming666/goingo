@@ -1,5 +1,4 @@
 #!/bin/bash
-# windows /bin/bash, mac /bin/sh
 PRO_NAME=$1
 
 rm -rf "$PRO_NAME"
