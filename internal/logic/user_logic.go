@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"fmt"
 	model2 "goingo/internal/model"
 	"goingo/tools/conv"
@@ -14,7 +15,7 @@ type UserLogic struct {
 // LoadUser 根据 uid 搜索用户
 func (u UserLogic) LoadUser(uid uint) *model2.User {
 	var cacheKey = model2.KeyUtils.GetUserKey(uid)
-	result, err := model2.RedisClient.HGetAll(cacheKey).Result()
+	result, err := model2.RedisClient.HGetAll(context.Background(), cacheKey).Result()
 	if err != nil {
 		resp.Resp(resp.ReFail, "查询失败", struct{ e error }{e: err})
 	}
@@ -26,8 +27,8 @@ func (u UserLogic) LoadUser(uid uint) *model2.User {
 		}
 		u := user.GetUserInfo()
 		go func() {
-			model2.RedisClient.HMSet(cacheKey, u.ToMap(u))
-			model2.RedisClient.Expire(cacheKey, 10*time.Second)
+			model2.RedisClient.HMSet(context.Background(), cacheKey, u.ToMap(u))
+			model2.RedisClient.Expire(context.Background(), cacheKey, 10*time.Second)
 		}()
 		return u
 	}
@@ -45,8 +46,8 @@ func (u UserLogic) EditUserInfo(user *model2.User) error {
 	user = user.SetUser()
 	var cacheKey = model2.KeyUtils.GetUserKey(user.Id)
 	go func() {
-		model2.RedisClient.HMSet(cacheKey, user.ToMap(user))
-		model2.RedisClient.Expire(cacheKey, 10*time.Second)
+		model2.RedisClient.HMSet(context.Background(), cacheKey, user.ToMap(user))
+		model2.RedisClient.Expire(context.Background(), cacheKey, 10*time.Second)
 	}()
 	return nil
 }

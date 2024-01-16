@@ -7,7 +7,7 @@
 - model [Gorm](https://gorm.io/zh_CN/)
 - 配置文件解析 [viper](https://github.com/spf13/viper/)
 - [jwt](https://github.com/golang-jwt/jwt/)
-- [redis](https://github.com/go-redis/redis/)
+- [redis](https://redis.uptrace.dev/zh/guide/)
 
 
 #### 目录结构

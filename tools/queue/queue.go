@@ -1,8 +1,9 @@
 package queue
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	"goingo/tools/logger"
 )
 
@@ -27,29 +28,27 @@ type XGroup struct {
 
 // XConsumer 消费者
 type XConsumer struct {
-	Name  string
-	Start string
+	Name string
 }
 
 type MsgBody struct {
 }
 
 func (q *Queue) Init() *Queue {
-	q.DelStreamGroup("queue:default")
+	//q.DelStreamGroup("queue:default")
+	q.GlobalName += ":queue:"
 	q.SetStream(&Stream{
-		Name: q.GlobalName + ":queue:default",
+		Name: q.GlobalName + "default",
 		GroupList: []XGroup{
 			{
 				Name:  "default_group_1",
 				Start: "$",
 				ConsumerList: []XConsumer{
 					{
-						Name:  "default_group_1_consumer_1",
-						Start: "$",
+						Name: "default_group_1_consumer_1",
 					},
 					{
-						Name:  "default_group_1_consumer_2",
-						Start: "$",
+						Name: "default_group_1_consumer_2",
 					},
 				},
 			},
@@ -58,12 +57,10 @@ func (q *Queue) Init() *Queue {
 				Start: "$",
 				ConsumerList: []XConsumer{
 					{
-						Name:  "default_group_2_consumer_1",
-						Start: "$",
+						Name: "default_group_2_consumer_1",
 					},
 					{
-						Name:  "default_group_2_consumer_2",
-						Start: "$",
+						Name: "default_group_2_consumer_2",
 					},
 				},
 			},
@@ -77,20 +74,21 @@ func (q *Queue) SetStream(stream *Stream) {
 		if group.Start == "" {
 			group.Start = "$"
 		}
-		res, err := q.Client.XGroupCreate(stream.Name, group.Name, group.Start).Result()
+		res, err := q.Client.XGroupCreate(context.Background(), stream.Name, group.Name, group.Start).Result()
 		if err != nil {
 			// todo
+			fmt.Println("err1 ============")
+			fmt.Println(stream.Name)
+			fmt.Println(err)
 			//return
 		}
 		logger.Info("队列创建消费组", res)
 		for _, consumer := range group.ConsumerList {
-			if consumer.Start == "" {
-				consumer.Start = "$"
-			}
-			res, err := q.Client.XGroupSetID(stream.Name, group.Name, consumer.Name).Result()
+			res, err := q.Client.XGroupCreateConsumer(context.Background(), stream.Name, group.Name, consumer.Name).Result()
 			if err != nil {
 				// todo
-				//fmt.Println(err)
+				fmt.Println("err2 ============")
+				fmt.Println(err)
 				//return
 			}
 			fmt.Println(res)
@@ -109,21 +107,26 @@ func (q *Queue) SetStream(stream *Stream) {
 			q.streamList = append(q.streamList, *stream)
 		}
 	}
-
 }
 
+// DelStreamGroup todo
 func (q *Queue) DelStreamGroup(name string) {
 	for _, stream := range q.streamList {
 		if stream.Name != name {
 			continue
 		}
 		for _, group := range stream.GroupList {
-			q.Client.XGroupDestroy(stream.Name, group.Name).Result()
-			for _, consumer := range group.ConsumerList {
-				q.Client.XGroupDelConsumer(stream.Name, group.Name, consumer.Name).Result()
-			}
+			q.Client.XGroupDestroy(context.Background(), stream.Name, group.Name).Result()
 		}
 	}
+}
+
+func (q *Queue) Info(queueName string) {
+	//queueName = q.GlobalName + queueName
+	//result, err := q.Client.XInfoGroups(context.Background(), queueName).Result()
+	//logger.Info(queueName)
+	//fmt.Println(result)
+	//fmt.Println(err)
 }
 
 func (q *Queue) GetPending(name string) *map[string]map[string]int64 {
@@ -136,7 +139,7 @@ func (q *Queue) GetPending(name string) *map[string]map[string]int64 {
 	}
 
 	for _, group := range stream.GroupList {
-		result, err := q.Client.XPending(stream.Name, group.Name).Result()
+		result, err := q.Client.XPending(context.Background(), stream.Name, group.Name).Result()
 		if err != nil {
 
 		}
@@ -147,13 +150,12 @@ func (q *Queue) GetPending(name string) *map[string]map[string]int64 {
 
 func (q *Queue) Push(body map[string]interface{}, queueName string) (string, error) {
 	var b = &redis.XAddArgs{
-		Stream:       q.GlobalName + ":queue:" + queueName,
-		MaxLen:       0,
-		MaxLenApprox: 0,
-		ID:           "",
-		Values:       body,
+		Stream: q.GlobalName + queueName,
+		MaxLen: 0,
+		ID:     "",
+		Values: body,
 	}
-	return q.Client.XAdd(b).Result()
+	return q.Client.XAdd(context.Background(), b).Result()
 }
 
 func (q *Queue) Loop() {

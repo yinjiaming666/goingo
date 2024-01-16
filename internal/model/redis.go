@@ -1,7 +1,8 @@
 package model
 
 import (
-	"github.com/go-redis/redis"
+	"context"
+	"github.com/redis/go-redis/v9"
 	"goingo/tools/key_utils"
 	"goingo/tools/logger"
 )
@@ -22,7 +23,7 @@ func InitRedis(c *RedisConf) {
 	}
 
 	RedisClient = redis.NewClient(o)
-	res, err := RedisClient.Ping().Result()
+	res, err := RedisClient.Ping(context.Background()).Result()
 	if err != nil {
 		println(err.Error())
 		logger.Error("redis connect fail", err.Error())
