@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"fmt"
 	model2 "goingo/internal/model"
 	"goingo/tools/conv"
@@ -26,18 +27,18 @@ func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (stri
 
 	//tokenModel.DelToken() // 删除这个用户的 token
 	cacheKey := model2.KeyUtils.GetTokenKey(userJwt.Token)
-	model2.RedisClient.Del(cacheKey) // 删除旧的 key
+	model2.RedisClient.Del(context.Background(), cacheKey) // 删除旧的 key
 
 	tokenModel.CreateToken()
 
 	m := conv.Struct2Map(*userJwt, true)
 	m["type"], _ = conv.Conv[string](m["type"])
-	_, err := model2.RedisClient.HMSet(cacheKey, m).Result()
+	_, err := model2.RedisClient.HMSet(context.Background(), cacheKey, m).Result()
 	if err != nil {
 		resp.Resp(resp.ReFail, "jwt 缓存失败", map[string]any{})
 	}
 	if exTime > 0 {
-		model2.RedisClient.Expire(cacheKey, time.Duration(exTime)*time.Second)
+		model2.RedisClient.Expire(context.Background(), cacheKey, time.Duration(exTime)*time.Second)
 	}
 	return j, userJwt
 }
@@ -49,7 +50,7 @@ func (tl *TokenLogic) CheckJwt(j string) *jwt.UserJwt {
 	}
 
 	cacheKey := model2.KeyUtils.GetTokenKey(userJwt.Token)
-	r, err := model2.RedisClient.HGetAll(cacheKey).Result()
+	r, err := model2.RedisClient.HGetAll(context.Background(), cacheKey).Result()
 	if err != nil {
 		resp.Resp(resp.ReFail, "查询失败", map[string]any{})
 	}
