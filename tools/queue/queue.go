@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"goingo/tools/logger"
@@ -9,124 +10,129 @@ import (
 )
 
 var Client *redis.Client
+var GlobalName string
+var streamList = make(map[string]*Stream)
 
-type Queue struct {
-	Client     *redis.Client
-	GlobalName string
-	streamList []Stream
-}
+type SType string
+
+// Normal 普通队列
+var Normal SType = "normal"
+
+// Delay 延时队列
+var Delay SType = "delay"
 
 // Stream 流
 type Stream struct {
-	Name      string
-	GroupList []XGroup
+	Name        string
+	fullName    string // redis 里存的名字
+	Type        SType
+	BackGroup   *XGroup // 用来备份的消费者组
+	HandelGroup *XGroup // 用户执行的消费者组
 }
 
 // XGroup 消费组
 type XGroup struct {
-	StreamName   string
-	Name         string
-	Start        string
-	ConsumerList []XConsumer
+	streamName   string
+	name         string
+	start        string
+	ConsumerList []*XConsumer
 }
 
 // XConsumer 消费者
 type XConsumer struct {
-	Name string
+	Name       string
+	groupName  string
+	streamName string
+}
+
+func Init(name string, client *redis.Client) {
+	Client = client
+	GlobalName = name
+}
+
+func getFullStreamName(name string, sType SType) string {
+	return GlobalName + ":" + string(sType) + ":" + name
+}
+
+func CreateStream(stream *Stream) error {
+	if _, ok := streamList[stream.Name]; ok {
+		return errors.New("repeat stream")
+	}
+	stream.fullName = getFullStreamName(stream.Name, stream.Type)
+
+	if len(stream.HandelGroup.ConsumerList) == 0 {
+		return errors.New("empty HandelGroup")
+	}
+	stream.HandelGroup.streamName = stream.fullName
+	stream.HandelGroup.name = "handel"
+	stream.HandelGroup.start = "$"
+	Client.XGroupDestroy(context.Background(), stream.fullName, "")
+	Client.XGroupDestroy(context.Background(), stream.fullName, "handel")
+	Client.XGroupDestroy(context.Background(), stream.fullName, "back")
+
+	res, err := Client.XGroupCreate(context.Background(), stream.fullName, stream.HandelGroup.name, stream.HandelGroup.start).Result()
+	if err != nil {
+		// todo
+	}
+	logger.Info("队列：" + stream.fullName + "创建执行消费者组" + res)
+	for k, consumer := range stream.HandelGroup.ConsumerList {
+		if consumer.Name == "" {
+			return errors.New("empty consumer name")
+		}
+		stream.HandelGroup.ConsumerList[k].streamName = stream.fullName
+		stream.HandelGroup.ConsumerList[k].groupName = stream.HandelGroup.name
+		_, err = Client.XGroupCreateConsumer(context.Background(), stream.fullName, stream.HandelGroup.name, consumer.Name).Result()
+		if err != nil {
+			// todo
+		}
+		logger.Info("队列：" + stream.fullName + "执行消费者组创建消费者：" + consumer.Name)
+	}
+
+	if len(stream.BackGroup.ConsumerList) > 0 {
+		stream.BackGroup.streamName = stream.fullName
+		stream.BackGroup.name = "back"
+		stream.BackGroup.start = "$"
+		res, err := Client.XGroupCreate(context.Background(), stream.fullName, stream.BackGroup.name, stream.BackGroup.start).Result()
+		if err != nil {
+			// todo
+		}
+		logger.Info("队列：" + stream.fullName + "创建备份消费者组" + res)
+		for k, consumer := range stream.BackGroup.ConsumerList {
+			if consumer.Name == "" {
+				return errors.New("empty consumer name")
+			}
+			stream.BackGroup.ConsumerList[k].streamName = stream.fullName
+			stream.BackGroup.ConsumerList[k].groupName = stream.BackGroup.name
+			_, err = Client.XGroupCreateConsumer(context.Background(), stream.fullName, stream.BackGroup.name, consumer.Name).Result()
+			if err != nil {
+				// todo
+			}
+			logger.Info("队列：" + stream.fullName + "备份消费者组创建消费者：" + consumer.Name)
+		}
+	}
+
+	streamList[stream.Name] = stream
+	stream.EchoInfo()
+	return nil
 }
 
 type MsgBody struct {
 }
 
-func (q *Queue) Init() *Queue {
-	q.GlobalName += ":queue:"
-	Client = q.Client
-	q.SetStream(&Stream{
-		Name: q.GlobalName + "default",
-		GroupList: []XGroup{
-			{
-				StreamName: q.GlobalName + "default",
-				Name:       "default_group_1",
-				Start:      "$",
-				ConsumerList: []XConsumer{
-					{
-						Name: "default_group_1_consumer_1",
-					},
-					{
-						Name: "default_group_1_consumer_2",
-					},
-				},
-			},
-			{
-				StreamName: q.GlobalName + "default",
-				Name:       "default_group_2",
-				Start:      "$",
-				ConsumerList: []XConsumer{
-					{
-						Name: "default_group_2_consumer_1",
-					},
-					{
-						Name: "default_group_2_consumer_2",
-					},
-				},
-			},
-		},
-	})
-	return q
-}
-
-func (q *Queue) SetStream(stream *Stream) {
-	for _, group := range stream.GroupList {
-		if group.Start == "" {
-			group.Start = "$"
-		}
-		res, err := q.Client.XGroupCreate(context.Background(), stream.Name, group.Name, group.Start).Result()
-		if err != nil {
-			// todo
-			//return
-		}
-		logger.Info("队列创建消费组", res)
-		for _, consumer := range group.ConsumerList {
-			res, err := q.Client.XGroupCreateConsumer(context.Background(), stream.Name, group.Name, consumer.Name).Result()
-			if err != nil {
-				// todo
-				//return
-			}
-			logger.Info("队列创建消费者", res)
-		}
-	}
-
-	if len(q.streamList) == 0 {
-		q.streamList = append(q.streamList, *stream)
-	}
-	for k, s := range q.streamList {
-		var isUpdate bool
-		if s.Name == stream.Name {
-			isUpdate = true
-		}
-		if isUpdate {
-			q.streamList[k] = *stream
-		} else {
-			q.streamList = append(q.streamList, *stream)
-		}
-	}
-	stream.EchoInfo()
-}
-
 // EchoInfo 输出 stream 全部信息
 func (s *Stream) EchoInfo() {
-	stream, err := Client.XInfoStream(context.Background(), s.Name).Result()
+	stream, err := Client.XInfoStream(context.Background(), s.fullName).Result()
 	if err != nil {
-		fmt.Printf("队列%s获取失败：%v \n", s.Name, err)
+		fmt.Printf("队列 %s 获取失败：%v \n", s.fullName, err)
 		return
 	}
-	fmt.Printf(">队列名称：%s \n", s.Name)
+	fmt.Printf(">队列名称：%s \n", s.fullName)
 	fmt.Printf(">队列长度：%d \n", stream.Length)
 	fmt.Printf(">FirstEntry：%v \n", stream.FirstEntry)
 	fmt.Printf(">LastEntry：%v \n", stream.LastEntry)
 	fmt.Printf(">RecordedFirstEntryID：%s \n", stream.RecordedFirstEntryID)
 
-	groups, err := Client.XInfoGroups(context.Background(), s.Name).Result()
+	groups, err := Client.XInfoGroups(context.Background(), s.fullName).Result()
 	if err != nil {
 		fmt.Printf("消费组获取失败：%v \n", err)
 		return
@@ -138,7 +144,7 @@ func (s *Stream) EchoInfo() {
 		fmt.Printf(">    LastDeliveredID：%s \n", group.LastDeliveredID)
 		fmt.Printf(">    EntriesRead：%d \n", group.EntriesRead)
 		fmt.Printf(">    Lag：%d \n", group.Lag)
-		consumers, _ := Client.XInfoConsumers(context.Background(), s.Name, group.Name).Result()
+		consumers, _ := Client.XInfoConsumers(context.Background(), s.fullName, group.Name).Result()
 		for _, consumer := range consumers {
 			fmt.Printf(">        消费者名称：%s \n", consumer.Name)
 			fmt.Printf(">        Pending：%d \n", consumer.Pending)
@@ -146,60 +152,62 @@ func (s *Stream) EchoInfo() {
 			fmt.Printf(">        Inactive：%s \n", consumer.Inactive)
 		}
 	}
-
 }
 
-func (q *Queue) GetPending(name string) *map[string]map[string]int64 {
-	var list map[string]map[string]int64
-	var stream Stream
-	for _, s := range q.streamList {
-		if s.Name == name {
-			stream = s
-		}
+func GetPending(name, gType string) (*redis.XPending, error) {
+	stream, ok := streamList[name]
+	if !ok {
+		return nil, errors.New("not found stream")
 	}
-
-	for _, group := range stream.GroupList {
-		result, err := q.Client.XPending(context.Background(), stream.Name, group.Name).Result()
-		if err != nil {
-
-		}
-		list[group.Name] = result.Consumers
+	var group *XGroup
+	if gType == "back" {
+		group = stream.HandelGroup
+	} else {
+		group = stream.BackGroup
 	}
-	return &list
+	result, err := Client.XPending(context.Background(), stream.Name, group.name).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (q *Queue) Push(body map[string]interface{}, queueName string) (string, error) {
+func Push(body map[string]interface{}, queueName string, sType SType) (string, error) {
 	var b = &redis.XAddArgs{
-		Stream: q.GlobalName + queueName,
+		Stream: getFullStreamName(queueName, sType),
 		MaxLen: 0,
 		ID:     "",
 		Values: body,
 	}
-	return q.Client.XAdd(context.Background(), b).Result()
+	return Client.XAdd(context.Background(), b).Result()
 }
 
-func (g *XGroup) listen() {
+func (c *XConsumer) listen() {
 	for {
-		fmt.Println("du ====" + g.Name)
+		fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", c.Name, c.streamName, c.groupName, c.Name)
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
-			Group:    g.Name,
-			Consumer: g.ConsumerList[0].Name,
-			Streams:  []string{g.StreamName, ">"},
+			Group:    c.groupName,
+			Consumer: c.Name,
+			Streams:  []string{c.streamName, ">"},
 			Count:    1,
+			Block:    1,
 		}).Result()
 		if err != nil {
-			fmt.Println("队列读取失败", err)
+			//println(err)
+		} else {
+			fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.Name, result, c.Name)
 		}
-		fmt.Printf("消费组 %s 读取结果：%+v \n", g.Name, result)
-		time.Sleep(1 * 500)
+		time.Sleep(1 * time.Second)
 	}
 }
 
-func (q *Queue) Loop() {
-	for _, s := range q.streamList {
-		for _, group := range s.GroupList {
-			fmt.Println(group.Name)
-			go group.listen()
+func Loop() {
+	for _, stream := range streamList {
+		for _, hc := range stream.HandelGroup.ConsumerList {
+			go hc.listen()
+		}
+		for _, bc := range stream.BackGroup.ConsumerList {
+			go bc.listen()
 		}
 	}
 }
