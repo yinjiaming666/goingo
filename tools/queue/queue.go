@@ -144,6 +144,8 @@ type Consumer interface {
 	SetGroupName(string)
 	StreamName() string
 	SetStreamName(string)
+	Exec() func(msg *Msg)
+	SetExec(func(msg *Msg))
 }
 
 // HandelConsumer 消费者
@@ -151,6 +153,15 @@ type HandelConsumer struct {
 	name       string
 	groupName  string
 	streamName string
+	exec       func(msg *Msg)
+}
+
+func (c *HandelConsumer) Exec() func(msg *Msg) {
+	return c.exec
+}
+
+func (c *HandelConsumer) SetExec(exec func(msg *Msg)) {
+	c.exec = exec
 }
 
 func (c *HandelConsumer) Name() string {
@@ -187,9 +198,7 @@ func (c *HandelConsumer) work() {
 			Count:    1,
 			Block:    1,
 		}).Result()
-		if err != nil {
-			//println(err)
-		} else {
+		if err == nil {
 			fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, result, c.name)
 		}
 		time.Sleep(1 * time.Second)
@@ -200,6 +209,15 @@ type BackConsumer struct {
 	name       string
 	groupName  string
 	streamName string
+	exec       func(msg *Msg)
+}
+
+func (b *BackConsumer) Exec() func(msg *Msg) {
+	return b.exec
+}
+
+func (b *BackConsumer) SetExec(exec func(msg *Msg)) {
+	b.exec = exec
 }
 
 func (b *BackConsumer) Name() string {
@@ -228,18 +246,25 @@ func (b *BackConsumer) SetStreamName(streamName string) {
 
 func (b *BackConsumer) work() {
 	for {
-		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", c.name, c.streamName, c.groupName, c.name)
+		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", b.name, b.streamName, b.groupName, b.name)
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
 			Group:    b.groupName,
 			Consumer: b.name,
-			Streams:  []string{b.streamName, strconv.Itoa(int(time.Now().UnixMilli())), ">"},
+			Streams:  []string{b.streamName, ">"},
 			Count:    1,
-			Block:    1,
+			Block:    0,
 		}).Result()
-		if err != nil {
-			//println(err)
-		} else {
-			fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", b.name, result, b.name)
+		fmt.Println(err)
+		if err == nil {
+			for _, xStream := range result {
+				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", b.name, xStream.Stream, b.name)
+				fmt.Println(xStream)
+				ml := ParseMsg(xStream.Messages)
+				for _, msg := range ml {
+					fmt.Printf("%+v \n", msg)
+					//b.Exec()(msg)
+				}
+			}
 		}
 		time.Sleep(1 * time.Second)
 	}
@@ -339,9 +364,6 @@ func CreateStream(stream Stream) error {
 	streamList[stream.Name()] = stream
 	EchoInfo(stream.Name())
 	return nil
-}
-
-type MsgBody struct {
 }
 
 // EchoInfo 输出 stream 全部信息
