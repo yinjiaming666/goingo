@@ -144,8 +144,8 @@ type Consumer interface {
 	SetGroupName(string)
 	StreamName() string
 	SetStreamName(string)
-	Exec() func(msg *Msg)
-	SetExec(func(msg *Msg))
+	Exec() ExecFunc
+	SetExec(ExecFunc)
 }
 
 // HandelConsumer 消费者
@@ -153,14 +153,14 @@ type HandelConsumer struct {
 	name       string
 	groupName  string
 	streamName string
-	exec       func(msg *Msg)
+	exec       ExecFunc
 }
 
-func (c *HandelConsumer) Exec() func(msg *Msg) {
+func (c *HandelConsumer) Exec() ExecFunc {
 	return c.exec
 }
 
-func (c *HandelConsumer) SetExec(exec func(msg *Msg)) {
+func (c *HandelConsumer) SetExec(exec ExecFunc) {
 	c.exec = exec
 }
 
@@ -209,14 +209,14 @@ type BackConsumer struct {
 	name       string
 	groupName  string
 	streamName string
-	exec       func(msg *Msg)
+	exec       ExecFunc
 }
 
-func (b *BackConsumer) Exec() func(msg *Msg) {
+func (b *BackConsumer) Exec() ExecFunc {
 	return b.exec
 }
 
-func (b *BackConsumer) SetExec(exec func(msg *Msg)) {
+func (b *BackConsumer) SetExec(exec ExecFunc) {
 	b.exec = exec
 }
 
@@ -262,7 +262,7 @@ func (b *BackConsumer) work() {
 				ml := ParseMsg(xStream.Messages)
 				for _, msg := range ml {
 					fmt.Printf("%+v \n", msg)
-					//b.Exec()(msg)
+					b.Exec()(msg)
 				}
 			}
 		}
@@ -360,6 +360,8 @@ func CreateStream(stream Stream) error {
 		}
 		logger.Info("队列：" + stream.FullName() + "备份消费者组创建消费者：" + consumer.Name())
 	}
+
+	stream.BackGroup().ConsumerList[0].SetExec(backupLog)
 
 	streamList[stream.Name()] = stream
 	EchoInfo(stream.Name())
