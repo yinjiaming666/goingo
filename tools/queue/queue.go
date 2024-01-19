@@ -328,6 +328,10 @@ func CreateStream(stream Stream) error {
 		if err != nil {
 			// todo
 		}
+		consumer.SetExec(func(msg *Msg) {
+			fun := ExecFuncMap[msg.M]
+			(*fun)(msg)
+		})
 		logger.Info("队列：" + stream.FullName() + "执行消费者组创建消费者：" + consumer.Name())
 	}
 
