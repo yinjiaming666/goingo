@@ -30,28 +30,44 @@ type Stream interface {
 	FullName() string
 	HandelGroup() *XGroup
 	SetHandelGroup(*XGroup)
-	BackGroup() *XGroup
-	SetBackGroup(*XGroup)
+	Ch() chan Context
+	SetCh(chan Context)
 }
 
 // NormalStream 普通队列
 type NormalStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
-	backGroup   *XGroup // 用来备份的消费者组
 	handelGroup *XGroup // 用来执行的消费者组
+	ch          chan Context
 }
 
 func (n *NormalStream) Loop() {
-	c := make(chan Context)
 	for _, stream := range streamList {
 		for _, hc := range stream.HandelGroup().ConsumerList {
-			go hc.work(c)
-		}
-		for _, bc := range stream.BackGroup().ConsumerList {
-			go bc.work(c)
+			go hc.work(stream.Ch())
 		}
 	}
+
+	go func(ch chan Context) {
+		for {
+			select {
+			case msg := <-ch:
+				switch msg.(type) {
+				case *CallBackSuccessContext:
+					logger.System("QUEUE CALLBACK SUCCESS "+msg.MsgId(), "res", msg.Data())
+					break
+				case *ReadGroupContext:
+					logger.System("QUEUE READ "+msg.MsgId(), "res", msg.Data())
+					break
+				}
+				break
+			default:
+				time.Sleep(1 * time.Second)
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}(n.Ch())
 }
 
 func (n *NormalStream) Name() string {
@@ -78,20 +94,20 @@ func (n *NormalStream) SetHandelGroup(group *XGroup) {
 	n.handelGroup = group
 }
 
-func (n *NormalStream) BackGroup() *XGroup {
-	return n.backGroup
+func (n *NormalStream) Ch() chan Context {
+	return n.ch
 }
 
-func (n *NormalStream) SetBackGroup(group *XGroup) {
-	n.backGroup = group
+func (n *NormalStream) SetCh(ch chan Context) {
+	n.ch = ch
 }
 
 // DelayStream 延时队列
 type DelayStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
-	backGroup   *XGroup // 用来备份的消费者组
 	handelGroup *XGroup // 用来执行的消费者组
+	ch          chan Context
 }
 
 func (d *DelayStream) Loop() {
@@ -121,12 +137,12 @@ func (d *DelayStream) SetHandelGroup(group *XGroup) {
 	d.handelGroup = group
 }
 
-func (d *DelayStream) BackGroup() *XGroup {
-	return d.backGroup
+func (d *DelayStream) Ch() chan Context {
+	return d.ch
 }
 
-func (d *DelayStream) SetBackGroup(group *XGroup) {
-	d.backGroup = group
+func (d *DelayStream) SetCh(ch chan Context) {
+	d.ch = ch
 }
 
 // XGroup 消费组
@@ -216,86 +232,21 @@ func (c *HandelConsumer) work(ch chan Context) {
 				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, xStream.Stream, c.name)
 				ml := ParseMsg(xStream.Messages)
 				for _, msg := range ml {
+					ch <- &ReadGroupContext{
+						msgId: msg.Id,
+						data: map[string]interface{}{
+							"stream":   c.streamName,
+							"group":    c.groupName,
+							"consumer": c.name,
+							"msg":      *msg,
+						},
+					}
 					callbackResult := (c.Callback())(msg)
 					if callbackResult.err == nil {
-						i, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
+						_, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
 						if err == nil {
-							println(i)
-							ch <- &CallBackSuccessContext{msgId: msg.Id}
-							//logger.System("QUEUE HANDEL "+msg.Id, "res", callbackResult, "code", i)
+							ch <- &CallBackSuccessContext{msgId: msg.Id, data: *callbackResult}
 						}
-					}
-				}
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-}
-
-type BackConsumer struct {
-	name       string
-	groupName  string
-	streamName string
-	callback   CallbackFunc
-}
-
-func (b *BackConsumer) Callback() CallbackFunc {
-	return b.callback
-}
-
-func (b *BackConsumer) SetCallback(exec CallbackFunc) {
-	b.callback = exec
-}
-
-func (b *BackConsumer) Name() string {
-	return b.name
-}
-
-func (b *BackConsumer) SetName(Name string) {
-	b.name = Name
-}
-
-func (b *BackConsumer) GroupName() string {
-	return b.groupName
-}
-
-func (b *BackConsumer) SetGroupName(groupName string) {
-	b.groupName = groupName
-}
-
-func (b *BackConsumer) StreamName() string {
-	return b.streamName
-}
-
-func (b *BackConsumer) SetStreamName(streamName string) {
-	b.streamName = streamName
-}
-
-func (b *BackConsumer) work(ch chan Context) {
-	for {
-		select {
-		case msg := <-ch:
-			switch msg.(type) {
-			case *CallBackSuccessContext:
-				Client.XAck(context.Background(), b.streamName, b.groupName, msg.MsgId())
-				logger.System("QUEUE CALLBACK SUCCESS "+msg.MsgId(), "res", msg.Data())
-				break
-			}
-			break
-		default:
-			result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
-				Group:    b.groupName,
-				Consumer: b.name,
-				Streams:  []string{b.streamName, ">"},
-				Count:    1,
-				Block:    0,
-			}).Result()
-			if err == nil {
-				for _, xStream := range result {
-					fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", b.name, xStream.Stream, b.name)
-					ml := ParseMsg(xStream.Messages)
-					for _, msg := range ml {
-						(b.callback)(msg)
 					}
 				}
 			}
@@ -322,6 +273,7 @@ func CreateStream(stream Stream) error {
 		return errors.New("repeat stream")
 	}
 
+	stream.SetCh(make(chan Context))
 	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
 
 	if stream.HandelGroup() == nil {
@@ -355,44 +307,12 @@ func CreateStream(stream Stream) error {
 		if err != nil {
 			// todo
 		}
-		consumer.SetCallback(func(msg *Msg) CallbackResult {
+		consumer.SetCallback(func(msg *Msg) *CallbackResult {
 			fun := CallbackMap[msg.M]
 			return (*fun)(msg)
 		})
 		logger.Info("队列：" + stream.FullName() + "执行消费者组创建消费者：" + consumer.Name())
 	}
-
-	if stream.BackGroup() == nil {
-		stream.SetBackGroup(&XGroup{
-			streamName: stream.FullName(),
-			name:       "back",
-			start:      "0",
-			ConsumerList: []Consumer{
-				&BackConsumer{
-					name: "back1",
-				},
-			},
-		})
-	}
-	res, err = Client.XGroupCreateMkStream(context.Background(), stream.FullName(), stream.BackGroup().name, stream.BackGroup().start).Result()
-	if err != nil {
-		// todo
-	}
-	logger.Info("队列：" + stream.FullName() + "创建备份消费者组" + res)
-	for k, consumer := range stream.BackGroup().ConsumerList {
-		if consumer.Name() == "" {
-			return errors.New("empty consumer name")
-		}
-		stream.BackGroup().ConsumerList[k].SetStreamName(stream.FullName())
-		stream.BackGroup().ConsumerList[k].SetGroupName(stream.BackGroup().name)
-		_, err = Client.XGroupCreateConsumer(context.Background(), stream.FullName(), stream.BackGroup().name, consumer.Name()).Result()
-		if err != nil {
-			// todo
-		}
-		logger.Info("队列：" + stream.FullName() + "备份消费者组创建消费者：" + consumer.Name())
-	}
-
-	stream.BackGroup().ConsumerList[0].SetCallback(backupLog)
 
 	streamList[stream.Name()] = stream
 	EchoInfo(stream.Name())
