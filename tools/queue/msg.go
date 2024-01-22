@@ -22,6 +22,7 @@ func ParseMsg(list []redis.XMessage) []*Msg {
 		if v, ok := XMessage.Values["data"]; ok {
 			var m Msg
 			_ = json.Unmarshal([]byte(v.(string)), &m)
+			m.Id = XMessage.ID
 			l = append(l, &m)
 		}
 	}

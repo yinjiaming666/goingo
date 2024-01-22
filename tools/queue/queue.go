@@ -43,12 +43,13 @@ type NormalStream struct {
 }
 
 func (n *NormalStream) Loop() {
+	c := make(chan Context)
 	for _, stream := range streamList {
 		for _, hc := range stream.HandelGroup().ConsumerList {
-			go hc.work()
+			go hc.work(c)
 		}
 		for _, bc := range stream.BackGroup().ConsumerList {
-			go bc.work()
+			go bc.work(c)
 		}
 	}
 }
@@ -136,16 +137,28 @@ type XGroup struct {
 	ConsumerList []Consumer
 }
 
+func (g *XGroup) GetPending() (*redis.XPending, error) {
+	stream, ok := streamList[g.streamName]
+	if !ok {
+		return nil, errors.New("not found stream")
+	}
+	result, err := Client.XPending(context.Background(), stream.Name(), g.name).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 type Consumer interface {
-	work()
+	work(chan Context)
 	Name() string
 	SetName(string)
 	GroupName() string
 	SetGroupName(string)
 	StreamName() string
 	SetStreamName(string)
-	Exec() ExecFunc
-	SetExec(ExecFunc)
+	Callback() CallbackFunc
+	SetCallback(CallbackFunc)
 }
 
 // HandelConsumer 消费者
@@ -153,15 +166,15 @@ type HandelConsumer struct {
 	name       string
 	groupName  string
 	streamName string
-	exec       ExecFunc
+	callback   CallbackFunc
 }
 
-func (c *HandelConsumer) Exec() ExecFunc {
-	return c.exec
+func (c *HandelConsumer) Callback() CallbackFunc {
+	return c.callback
 }
 
-func (c *HandelConsumer) SetExec(exec ExecFunc) {
-	c.exec = exec
+func (c *HandelConsumer) SetCallback(exec CallbackFunc) {
+	c.callback = exec
 }
 
 func (c *HandelConsumer) Name() string {
@@ -188,18 +201,32 @@ func (c *HandelConsumer) SetStreamName(streamName string) {
 	c.streamName = streamName
 }
 
-func (c *HandelConsumer) work() {
+func (c *HandelConsumer) work(ch chan Context) {
 	for {
 		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", c.name, c.streamName, c.groupName, c.name)
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
 			Group:    c.groupName,
 			Consumer: c.name,
-			Streams:  []string{c.streamName, strconv.Itoa(int(time.Now().UnixMilli())), ">"},
+			Streams:  []string{c.streamName, ">"},
 			Count:    1,
 			Block:    1,
 		}).Result()
 		if err == nil {
-			fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, result, c.name)
+			for _, xStream := range result {
+				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, xStream.Stream, c.name)
+				ml := ParseMsg(xStream.Messages)
+				for _, msg := range ml {
+					callbackResult := (c.Callback())(msg)
+					if callbackResult.err == nil {
+						i, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
+						if err == nil {
+							println(i)
+							ch <- &CallBackSuccessContext{msgId: msg.Id}
+							//logger.System("QUEUE HANDEL "+msg.Id, "res", callbackResult, "code", i)
+						}
+					}
+				}
+			}
 		}
 		time.Sleep(1 * time.Second)
 	}
@@ -209,15 +236,15 @@ type BackConsumer struct {
 	name       string
 	groupName  string
 	streamName string
-	exec       ExecFunc
+	callback   CallbackFunc
 }
 
-func (b *BackConsumer) Exec() ExecFunc {
-	return b.exec
+func (b *BackConsumer) Callback() CallbackFunc {
+	return b.callback
 }
 
-func (b *BackConsumer) SetExec(exec ExecFunc) {
-	b.exec = exec
+func (b *BackConsumer) SetCallback(exec CallbackFunc) {
+	b.callback = exec
 }
 
 func (b *BackConsumer) Name() string {
@@ -244,25 +271,32 @@ func (b *BackConsumer) SetStreamName(streamName string) {
 	b.streamName = streamName
 }
 
-func (b *BackConsumer) work() {
+func (b *BackConsumer) work(ch chan Context) {
 	for {
-		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", b.name, b.streamName, b.groupName, b.name)
-		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
-			Group:    b.groupName,
-			Consumer: b.name,
-			Streams:  []string{b.streamName, ">"},
-			Count:    1,
-			Block:    0,
-		}).Result()
-		fmt.Println(err)
-		if err == nil {
-			for _, xStream := range result {
-				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", b.name, xStream.Stream, b.name)
-				fmt.Println(xStream)
-				ml := ParseMsg(xStream.Messages)
-				for _, msg := range ml {
-					fmt.Printf("%+v \n", msg)
-					b.Exec()(msg)
+		select {
+		case msg := <-ch:
+			switch msg.(type) {
+			case *CallBackSuccessContext:
+				Client.XAck(context.Background(), b.streamName, b.groupName, msg.MsgId())
+				logger.System("QUEUE CALLBACK SUCCESS "+msg.MsgId(), "res", msg.Data())
+				break
+			}
+			break
+		default:
+			result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
+				Group:    b.groupName,
+				Consumer: b.name,
+				Streams:  []string{b.streamName, ">"},
+				Count:    1,
+				Block:    0,
+			}).Result()
+			if err == nil {
+				for _, xStream := range result {
+					fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", b.name, xStream.Stream, b.name)
+					ml := ParseMsg(xStream.Messages)
+					for _, msg := range ml {
+						(b.callback)(msg)
+					}
 				}
 			}
 		}
@@ -289,20 +323,12 @@ func CreateStream(stream Stream) error {
 	}
 
 	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
-	Client.XAdd(context.Background(), &redis.XAddArgs{
-		Stream: stream.FullName(),
-		ID:     "",
-		MaxLen: 0,
-		Values: map[string]string{
-			"type": "init",
-		},
-	})
 
 	if stream.HandelGroup() == nil {
 		stream.SetHandelGroup(&XGroup{
 			streamName: stream.FullName(),
 			name:       "handel",
-			start:      "$",
+			start:      "$", // 指定从最后一条开始读取
 			ConsumerList: []Consumer{
 				&HandelConsumer{
 					name: "handel1",
@@ -313,7 +339,8 @@ func CreateStream(stream Stream) error {
 			},
 		})
 	}
-	res, err := Client.XGroupCreate(context.Background(), stream.FullName(), stream.HandelGroup().name, stream.HandelGroup().start).Result()
+	// 创建消费组时如果指定的 stream 不存在会报错。增加参数 MKSTREAM ，可以在 stream 不存在时自动创建它
+	res, err := Client.XGroupCreateMkStream(context.Background(), stream.FullName(), stream.HandelGroup().name, stream.HandelGroup().start).Result()
 	if err != nil {
 		// todo
 	}
@@ -328,8 +355,8 @@ func CreateStream(stream Stream) error {
 		if err != nil {
 			// todo
 		}
-		consumer.SetExec(func(msg *Msg) ExecResult {
-			fun := ExecFuncMap[msg.M]
+		consumer.SetCallback(func(msg *Msg) CallbackResult {
+			fun := CallbackMap[msg.M]
 			return (*fun)(msg)
 		})
 		logger.Info("队列：" + stream.FullName() + "执行消费者组创建消费者：" + consumer.Name())
@@ -339,7 +366,7 @@ func CreateStream(stream Stream) error {
 		stream.SetBackGroup(&XGroup{
 			streamName: stream.FullName(),
 			name:       "back",
-			start:      "$",
+			start:      "0",
 			ConsumerList: []Consumer{
 				&BackConsumer{
 					name: "back1",
@@ -347,7 +374,7 @@ func CreateStream(stream Stream) error {
 			},
 		})
 	}
-	res, err = Client.XGroupCreate(context.Background(), stream.FullName(), stream.BackGroup().name, stream.BackGroup().start).Result()
+	res, err = Client.XGroupCreateMkStream(context.Background(), stream.FullName(), stream.BackGroup().name, stream.BackGroup().start).Result()
 	if err != nil {
 		// todo
 	}
@@ -365,7 +392,7 @@ func CreateStream(stream Stream) error {
 		logger.Info("队列：" + stream.FullName() + "备份消费者组创建消费者：" + consumer.Name())
 	}
 
-	stream.BackGroup().ConsumerList[0].SetExec(backupLog)
+	stream.BackGroup().ConsumerList[0].SetCallback(backupLog)
 
 	streamList[stream.Name()] = stream
 	EchoInfo(stream.Name())
@@ -423,24 +450,6 @@ func StreamType(stream Stream) SType {
 	default:
 		return ""
 	}
-}
-
-func GetPending(name, gType string) (*redis.XPending, error) {
-	stream, ok := streamList[name]
-	if !ok {
-		return nil, errors.New("not found stream")
-	}
-	var group *XGroup
-	if gType == "back" {
-		group = stream.HandelGroup()
-	} else {
-		group = stream.BackGroup()
-	}
-	result, err := Client.XPending(context.Background(), stream.Name(), group.name).Result()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func Push(body map[string]interface{}, queueName string, sType SType) (string, error) {

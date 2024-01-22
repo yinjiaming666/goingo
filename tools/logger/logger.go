@@ -85,7 +85,7 @@ func Info(msg string, append ...any) {
 }
 
 func System(msg string, append ...any) {
-	println(msg)
+	fmt.Println(msg, append)
 	logHandel := slog.New(slog.NewTextHandler(systemFileHandel, nil))
 	slog.SetDefault(logHandel)
 	slog.Info(msg, append...)
