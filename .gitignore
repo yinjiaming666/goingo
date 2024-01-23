@@ -17,3 +17,4 @@
 .idea
 test.go
 *.tar.gz
+*test*
