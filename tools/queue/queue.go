@@ -30,8 +30,8 @@ type Stream interface {
 	FullName() string
 	HandelGroup() *XGroup
 	SetHandelGroup(*XGroup)
-	Hook() *Hook
-	SetHook(*Hook)
+	Hook() chan *Hook
+	SetHook(chan *Hook)
 }
 
 // NormalStream 普通队列
@@ -39,7 +39,7 @@ type NormalStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
 	handelGroup *XGroup // 用来执行的消费者组
-	hook        *Hook
+	hook        chan *Hook
 }
 
 func (n *NormalStream) Loop() {
@@ -50,24 +50,23 @@ func (n *NormalStream) Loop() {
 	}
 
 	// 用于执行钩子
-	go func(hook *Hook) {
-		for {
-			select {
-			case msg := <-hook.handel:
-				fun, ok := HookMap[*msg]
-				if ok {
-					hookRes := (*fun)(hook)
-					fmt.Println(hookRes)
-				}
-				break
-			case <-hook.ctx.Done():
-				return
-			default:
-				time.Sleep(1 * time.Second)
+	go n.listenHook()
+}
+
+func (n *NormalStream) listenHook() {
+	for {
+		select {
+		case hook := <-n.hook:
+			fun, ok := HookMap[*hook.name]
+			if ok {
+				_ = (*fun)(n, hook.data)
 			}
+			break
+		default:
 			time.Sleep(1 * time.Second)
 		}
-	}(n.Hook())
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (n *NormalStream) Name() string {
@@ -94,11 +93,11 @@ func (n *NormalStream) SetHandelGroup(group *XGroup) {
 	n.handelGroup = group
 }
 
-func (n *NormalStream) Hook() *Hook {
+func (n *NormalStream) Hook() chan *Hook {
 	return n.hook
 }
 
-func (n *NormalStream) SetHook(h *Hook) {
+func (n *NormalStream) SetHook(h chan *Hook) {
 	n.hook = h
 }
 
@@ -107,7 +106,7 @@ type DelayStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
 	handelGroup *XGroup // 用来执行的消费者组
-	hook        *Hook
+	hook        chan *Hook
 }
 
 func (d *DelayStream) Loop() {
@@ -137,11 +136,11 @@ func (d *DelayStream) SetHandelGroup(group *XGroup) {
 	d.handelGroup = group
 }
 
-func (d *DelayStream) Hook() *Hook {
+func (d *DelayStream) Hook() chan *Hook {
 	return d.hook
 }
 
-func (d *DelayStream) SetHook(hook *Hook) {
+func (d *DelayStream) SetHook(hook chan *Hook) {
 	d.hook = hook
 }
 
@@ -166,7 +165,7 @@ func (g *XGroup) GetPending() (*redis.XPending, error) {
 }
 
 type Consumer interface {
-	work(hook *Hook)
+	work(chan *Hook)
 	Name() string
 	SetName(string)
 	GroupName() string
@@ -217,37 +216,66 @@ func (c *HandelConsumer) SetStreamName(streamName string) {
 	c.streamName = streamName
 }
 
-func (c *HandelConsumer) work(hook *Hook) {
+func (c *HandelConsumer) work(hook chan *Hook) {
 	for {
-		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", c.name, c.streamName, c.groupName, c.name)
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
 			Group:    c.groupName,
 			Consumer: c.name,
 			Streams:  []string{c.streamName, ">"},
 			Count:    1,
-			Block:    1,
+			Block:    0,
 		}).Result()
-		if err == nil {
-			for _, xStream := range result {
-				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, xStream.Stream, c.name)
-				ml := ParseMsg(xStream.Messages)
-				for _, msg := range ml {
-					hook.SetValue("Msg", *msg)
-					hook.handel <- &PopSuccess
-					callbackResult := (c.Callback())(msg)
-					if callbackResult.Err == nil {
-						hook.SetValue("callback_res", callbackResult)
-						_, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
-						if err == nil {
-							hook.handel <- &CallbackSuccess
-						} else {
-							hook.handel <- &CallbackFail
-						}
+		if err != nil {
+			// todo hook
+		}
+		for _, xStream := range result {
+			ml := ParseMsg(xStream.Messages)
+			for _, msg := range ml {
+				hook <- &Hook{
+					name: &PopSuccess,
+					data: map[string]any{
+						"consumer": c.name,
+						"msg":      msg,
+					},
+				}
+				callbackResult := (c.Callback())(msg)
+				if callbackResult.Err != nil {
+					hook <- &Hook{
+						name: &CallbackFail,
+						data: map[string]any{
+							"consumer":     c.name,
+							"callback_res": callbackResult,
+							"msg":          msg,
+						},
 					}
+					continue
+				}
+				ack, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
+				if err != nil {
+					hook <- &Hook{
+						name: &CallbackSuccess,
+						data: map[string]any{
+							"consumer":     c.name,
+							"callback_res": AckMsgFail,
+							"msg":          msg,
+							"ack":          ack,
+						},
+					}
+					continue
+				} else {
+					hook <- &Hook{
+						name: &CallbackSuccess,
+						data: map[string]any{
+							"consumer":     c.name,
+							"callback_res": callbackResult,
+							"msg":          msg,
+						},
+					}
+					continue
 				}
 			}
 		}
-		time.Sleep(1 * time.Second)
+		//time.Sleep(1 * time.Second)
 	}
 }
 
@@ -269,16 +297,12 @@ func CreateStream(stream Stream) error {
 		return errors.New("repeat stream")
 	}
 
-	stream.SetHook(&Hook{
-		ctx:    context.Background(),
-		handel: make(chan *HookFuncName),
-	})
 	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
 
 	if stream.HandelGroup() == nil {
 		stream.SetHandelGroup(&XGroup{
 			streamName: stream.FullName(),
-			name:       "handel",
+			name:       "name",
 			start:      "$", // 指定从最后一条开始读取
 			ConsumerList: []Consumer{
 				&HandelConsumer{
@@ -309,8 +333,12 @@ func CreateStream(stream Stream) error {
 		consumer.SetCallback(func(msg *Msg) *CallbackResult {
 			fun, ok := CallbackMap[msg.CallbackName]
 			if !ok {
-				stream.Hook().SetValue("msg", msg)
-				stream.Hook().handel <- &UndefinedCallback
+				stream.Hook() <- &Hook{
+					name: &UndefinedCallback,
+					data: map[string]any{
+						"msg": msg,
+					},
+				}
 				return &CallbackResult{
 					Err:      errors.New("undefined callback"),
 					Msg:      "undefined callback",
@@ -398,11 +426,19 @@ func Push(queueName, c, callback string, data map[string]interface{}) (string, e
 			"data": msg,
 		},
 	}
-	stream.Hook().SetValue("Msg", msg)
-	go func() {
-		stream.Hook().handel <- &PushSuccess
-	}()
-	return Client.XAdd(context.Background(), b).Result()
+	result, err := Client.XAdd(context.Background(), b).Result()
+	if err != nil {
+		return "", err
+	}
+	msg.Id = result
+	fmt.Println(msg)
+	stream.Hook() <- &Hook{
+		name: &PushSuccess,
+		data: map[string]any{
+			"msg": msg,
+		},
+	}
+	return result, err
 }
 
 func PushDaly(body map[string]interface{}, queueName string, sType SType, second int) (string, error) {
