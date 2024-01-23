@@ -30,8 +30,8 @@ type Stream interface {
 	FullName() string
 	HandelGroup() *XGroup
 	SetHandelGroup(*XGroup)
-	Ch() chan Context
-	SetCh(chan Context)
+	Hook() *Hook
+	SetHook(*Hook)
 }
 
 // NormalStream 普通队列
@@ -39,35 +39,35 @@ type NormalStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
 	handelGroup *XGroup // 用来执行的消费者组
-	ch          chan Context
+	hook        *Hook
 }
 
 func (n *NormalStream) Loop() {
 	for _, stream := range streamList {
 		for _, hc := range stream.HandelGroup().ConsumerList {
-			go hc.work(stream.Ch())
+			go hc.work(stream.Hook())
 		}
 	}
 
-	go func(ch chan Context) {
+	// 用于执行钩子
+	go func(hook *Hook) {
 		for {
 			select {
-			case msg := <-ch:
-				switch msg.(type) {
-				case *CallBackSuccessContext:
-					logger.System("QUEUE CALLBACK SUCCESS "+msg.MsgId(), "res", msg.Data())
-					break
-				case *ReadGroupContext:
-					logger.System("QUEUE READ "+msg.MsgId(), "res", msg.Data())
-					break
+			case msg := <-hook.handel:
+				fun, ok := HookMap[*msg]
+				if ok {
+					hookRes := (*fun)(hook)
+					fmt.Println(hookRes)
 				}
 				break
+			case <-hook.ctx.Done():
+				return
 			default:
 				time.Sleep(1 * time.Second)
 			}
 			time.Sleep(1 * time.Second)
 		}
-	}(n.Ch())
+	}(n.Hook())
 }
 
 func (n *NormalStream) Name() string {
@@ -94,12 +94,12 @@ func (n *NormalStream) SetHandelGroup(group *XGroup) {
 	n.handelGroup = group
 }
 
-func (n *NormalStream) Ch() chan Context {
-	return n.ch
+func (n *NormalStream) Hook() *Hook {
+	return n.hook
 }
 
-func (n *NormalStream) SetCh(ch chan Context) {
-	n.ch = ch
+func (n *NormalStream) SetHook(h *Hook) {
+	n.hook = h
 }
 
 // DelayStream 延时队列
@@ -107,7 +107,7 @@ type DelayStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
 	handelGroup *XGroup // 用来执行的消费者组
-	ch          chan Context
+	hook        *Hook
 }
 
 func (d *DelayStream) Loop() {
@@ -137,12 +137,12 @@ func (d *DelayStream) SetHandelGroup(group *XGroup) {
 	d.handelGroup = group
 }
 
-func (d *DelayStream) Ch() chan Context {
-	return d.ch
+func (d *DelayStream) Hook() *Hook {
+	return d.hook
 }
 
-func (d *DelayStream) SetCh(ch chan Context) {
-	d.ch = ch
+func (d *DelayStream) SetHook(hook *Hook) {
+	d.hook = hook
 }
 
 // XGroup 消费组
@@ -166,7 +166,7 @@ func (g *XGroup) GetPending() (*redis.XPending, error) {
 }
 
 type Consumer interface {
-	work(chan Context)
+	work(hook *Hook)
 	Name() string
 	SetName(string)
 	GroupName() string
@@ -217,7 +217,7 @@ func (c *HandelConsumer) SetStreamName(streamName string) {
 	c.streamName = streamName
 }
 
-func (c *HandelConsumer) work(ch chan Context) {
+func (c *HandelConsumer) work(hook *Hook) {
 	for {
 		//fmt.Printf("============== %s ==============\n阻塞读取中\n%s\n%s\n============== %s ==============\n\n\n", c.name, c.streamName, c.groupName, c.name)
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
@@ -232,20 +232,16 @@ func (c *HandelConsumer) work(ch chan Context) {
 				fmt.Printf("============== %s ============\n读取结果 %+v \n============== %s ============\n\n\n", c.name, xStream.Stream, c.name)
 				ml := ParseMsg(xStream.Messages)
 				for _, msg := range ml {
-					ch <- &ReadGroupContext{
-						msgId: msg.Id,
-						data: map[string]interface{}{
-							"stream":   c.streamName,
-							"group":    c.groupName,
-							"consumer": c.name,
-							"msg":      *msg,
-						},
-					}
+					hook.SetValue("Msg", *msg)
+					hook.handel <- &PopSuccess
 					callbackResult := (c.Callback())(msg)
-					if callbackResult.err == nil {
+					if callbackResult.Err == nil {
+						hook.SetValue("callback_res", callbackResult)
 						_, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
 						if err == nil {
-							ch <- &CallBackSuccessContext{msgId: msg.Id, data: *callbackResult}
+							hook.handel <- &CallbackSuccess
+						} else {
+							hook.handel <- &CallbackFail
 						}
 					}
 				}
@@ -273,7 +269,10 @@ func CreateStream(stream Stream) error {
 		return errors.New("repeat stream")
 	}
 
-	stream.SetCh(make(chan Context))
+	stream.SetHook(&Hook{
+		ctx:    context.Background(),
+		handel: make(chan *HookFuncName),
+	})
 	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
 
 	if stream.HandelGroup() == nil {
@@ -308,8 +307,19 @@ func CreateStream(stream Stream) error {
 			// todo
 		}
 		consumer.SetCallback(func(msg *Msg) *CallbackResult {
-			fun := CallbackMap[msg.M]
-			return (*fun)(msg)
+			fun, ok := CallbackMap[msg.CallbackName]
+			if !ok {
+				stream.Hook().SetValue("msg", msg)
+				stream.Hook().handel <- &UndefinedCallback
+				return &CallbackResult{
+					Err:      errors.New("undefined callback"),
+					Msg:      "undefined callback",
+					Code:     1,
+					BackData: nil,
+				}
+			} else {
+				return (*fun)(msg)
+			}
 		})
 		logger.Info("队列：" + stream.FullName() + "执行消费者组创建消费者：" + consumer.Name())
 	}
@@ -359,6 +369,7 @@ func EchoInfo(streamName string) {
 			fmt.Printf(">        Inactive：%s \n", consumer.Inactive)
 		}
 	}
+	return
 }
 
 func StreamType(stream Stream) SType {
@@ -372,13 +383,25 @@ func StreamType(stream Stream) SType {
 	}
 }
 
-func Push(body map[string]interface{}, queueName string, sType SType) (string, error) {
+func Push(queueName, c, callback string, data map[string]interface{}) (string, error) {
+	stream := streamList[queueName]
+	var msg = Msg{
+		C:            c,
+		CallbackName: callback,
+		Data:         data,
+	}
 	var b = &redis.XAddArgs{
-		Stream: generateFullStreamName(queueName, sType),
+		Stream: stream.FullName(),
 		MaxLen: 0,
 		ID:     "",
-		Values: body,
+		Values: map[string]interface{}{
+			"data": msg,
+		},
 	}
+	stream.Hook().SetValue("Msg", msg)
+	go func() {
+		stream.Hook().handel <- &PushSuccess
+	}()
 	return Client.XAdd(context.Background(), b).Result()
 }
 

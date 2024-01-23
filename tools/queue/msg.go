@@ -6,10 +6,10 @@ import (
 )
 
 type Msg struct {
-	C    string
-	M    string
-	Id   string
-	Data map[string]interface{}
+	C            string // 保留字段
+	CallbackName string
+	Id           string
+	Data         map[string]interface{}
 }
 
 func (s Msg) MarshalBinary() ([]byte, error) {
