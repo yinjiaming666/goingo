@@ -13,19 +13,19 @@ var HookMap = map[HookFuncName]*HookFunc{
 
 type HookFuncName int
 
-// PushSuccess 队列放入数据
+// PushSuccess 队列放入数据事件
 var PushSuccess HookFuncName = 0
 
-// PopSuccess 队列取出数据钩子
+// PopSuccess 队列取出数据事件
 var PopSuccess HookFuncName = 1
 
-// CallbackSuccess 执行回调成功钩子
+// CallbackSuccess 执行回调成功事件
 var CallbackSuccess HookFuncName = 2
 
-// CallbackFail 执行回调失败钩子
+// CallbackFail 执行回调失败事件
 var CallbackFail HookFuncName = 3
 
-// UndefinedCallback 未定义的 callback
+// UndefinedCallback 未定义的 callback 事件
 var UndefinedCallback HookFuncName = 4
 
 type HookFunc func(hook *Hook) *HookResult
