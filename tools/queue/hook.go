@@ -5,24 +5,24 @@ var HookMap = map[HookFuncName]*HookFunc{
 	PopSuccess:      &popSuccessFunc,
 }
 
-type HookFuncName int
+type HookFuncName string
 
 // PushSuccess 队列放入数据事件
-var PushSuccess HookFuncName = 0
+var PushSuccess HookFuncName = "push_success"
 
 // PopSuccess 队列取出数据事件
-var PopSuccess HookFuncName = 1
+var PopSuccess HookFuncName = "pop_success"
 
 // CallbackSuccess 执行回调成功事件
-var CallbackSuccess HookFuncName = 2
+var CallbackSuccess HookFuncName = "callback_success"
 
 // CallbackFail 执行回调失败事件
-var CallbackFail HookFuncName = 3
+var CallbackFail HookFuncName = "callback_fail"
 
 // UndefinedCallback 未定义的 callback 事件
-var UndefinedCallback HookFuncName = 4
+var UndefinedCallback HookFuncName = "undefined_callback"
 
-var AckMsgFail HookFuncName = 5
+var AckMsgFail HookFuncName = "ack_msg_fail"
 
 type HookFunc func(stream Stream, data map[string]any) *HookResult
 

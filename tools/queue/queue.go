@@ -65,7 +65,6 @@ func (n *NormalStream) listenHook() {
 		default:
 			time.Sleep(1 * time.Second)
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -298,6 +297,7 @@ func CreateStream(stream Stream) error {
 	}
 
 	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
+	stream.SetHook(make(chan *Hook))
 
 	if stream.HandelGroup() == nil {
 		stream.SetHandelGroup(&XGroup{
@@ -431,11 +431,10 @@ func Push(queueName, c, callback string, data map[string]interface{}) (string, e
 		return "", err
 	}
 	msg.Id = result
-	fmt.Println(msg)
 	stream.Hook() <- &Hook{
 		name: &PushSuccess,
 		data: map[string]any{
-			"msg": msg,
+			"msg": &msg,
 		},
 	}
 	return result, err
