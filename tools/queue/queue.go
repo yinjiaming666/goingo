@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"goingo/tools/logger"
+	"goingo/tools/random"
 	"strconv"
 	"time"
 )
@@ -32,6 +33,7 @@ type Stream interface {
 	SetHandelGroup(*XGroup)
 	Hook() chan *Hook
 	SetHook(chan *Hook)
+	Create() error
 }
 
 // NormalStream 普通队列
@@ -42,24 +44,91 @@ type NormalStream struct {
 	hook        chan *Hook
 }
 
-func (n *NormalStream) Loop() {
-	for _, stream := range streamList {
-		for _, hc := range stream.HandelGroup().ConsumerList {
-			go hc.work(stream.Hook())
-		}
+func (n *NormalStream) Create() error {
+	if n.Name() == "" {
+		return errors.New("empty stream name")
 	}
 
-	// 用于执行钩子
-	go n.listenHook()
+	if _, ok := streamList[n.Name()]; ok {
+		return errors.New("repeat stream")
+	}
+
+	n.SetFullName(generateFullStreamName(n.Name(), Normal))
+	n.SetHook(make(chan *Hook))
+
+	if n.HandelGroup() == nil {
+		n.SetHandelGroup(&XGroup{
+			streamName: n.FullName(),
+			name:       "name",
+			start:      "$", // 指定从最后一条开始读取
+			ConsumerList: []Consumer{
+				&NormalConsumer{
+					name: "handel1",
+				},
+				&NormalConsumer{
+					name: "handel2",
+				},
+			},
+		})
+	}
+	// 创建消费组时如果指定的 stream 不存在会报错。增加参数 MKSTREAM ，可以在 stream 不存在时自动创建它
+	res, err := Client.XGroupCreateMkStream(context.Background(), n.FullName(), n.HandelGroup().name, n.HandelGroup().start).Result()
+	if err != nil {
+		// todo
+	}
+	logger.Info("队列：" + n.FullName() + "创建执行消费者组" + res)
+	for k, consumer := range n.HandelGroup().ConsumerList {
+		if consumer.Name() == "" {
+			return errors.New("empty consumer name")
+		}
+		n.HandelGroup().ConsumerList[k].SetStreamName(n.FullName())
+		n.HandelGroup().ConsumerList[k].SetGroupName(n.HandelGroup().name)
+		_, err = Client.XGroupCreateConsumer(context.Background(), n.FullName(), n.HandelGroup().name, consumer.Name()).Result()
+		if err != nil {
+			// todo
+		}
+		consumer.SetCallback(func(msg *Msg) *CallbackResult {
+			fun, ok := CallbackMap[msg.CallbackName]
+			if !ok {
+				n.Hook() <- &Hook{
+					name: &UndefinedCallback,
+					data: map[string]any{
+						"msg": msg,
+					},
+				}
+				return &CallbackResult{
+					Err:      errors.New("undefined callback"),
+					Msg:      "undefined callback",
+					Code:     1,
+					BackData: nil,
+				}
+			} else {
+				return (*fun)(msg)
+			}
+		})
+		logger.Info("队列：" + n.FullName() + "执行消费者组创建消费者：" + consumer.Name())
+	}
+
+	streamList[n.Name()] = n
+	EchoInfo(n.Name())
+	return nil
 }
 
-func (n *NormalStream) listenHook() {
+func (n *NormalStream) Loop() {
+	for _, hc := range n.HandelGroup().ConsumerList {
+		go hc.work(n.Hook())
+	}
+	// 用于执行钩子
+	go listenHook(n)
+}
+
+func listenHook(s Stream) {
 	for {
 		select {
-		case hook := <-n.hook:
+		case hook := <-s.Hook():
 			fun, ok := HookMap[*hook.name]
 			if ok {
-				_ = (*fun)(n, hook.data)
+				_ = (*fun)(s, hook.data)
 			}
 			break
 		default:
@@ -108,7 +177,57 @@ type DelayStream struct {
 	hook        chan *Hook
 }
 
+func (d *DelayStream) Create() error {
+	if d.Name() == "" {
+		return errors.New("empty stream name")
+	}
+	if _, ok := streamList[d.Name()]; ok {
+		return errors.New("repeat stream")
+	}
+	d.SetFullName(generateFullStreamName(d.Name(), Delay))
+	d.SetHandelGroup(&XGroup{
+		streamName: d.FullName(),
+		name:       "group",
+		start:      "",
+		ConsumerList: []Consumer{
+			&DelayConsumer{
+				name:       "handel1",
+				streamName: d.FullName(),
+				groupName:  "group",
+			},
+		},
+	})
+	d.HandelGroup().ConsumerList[0].SetCallback(
+		func(msg *Msg) *CallbackResult {
+			fun, ok := CallbackMap[msg.CallbackName]
+			if !ok {
+				d.Hook() <- &Hook{
+					name: &UndefinedCallback,
+					data: map[string]any{
+						"msg": msg,
+					},
+				}
+				return &CallbackResult{
+					Err:      errors.New("undefined callback"),
+					Msg:      "undefined callback",
+					Code:     1,
+					BackData: nil,
+				}
+			} else {
+				return (*fun)(msg)
+			}
+		},
+	)
+	d.SetFullName(generateFullStreamName(d.Name(), Delay))
+	d.SetHook(make(chan *Hook))
+	streamList[d.Name()] = d
+	return nil
+}
+
 func (d *DelayStream) Loop() {
+	// 用于执行钩子
+	go listenHook(d)
+	go d.handelGroup.ConsumerList[0].work(d.Hook())
 }
 
 func (d *DelayStream) Name() string {
@@ -151,18 +270,6 @@ type XGroup struct {
 	ConsumerList []Consumer
 }
 
-func (g *XGroup) GetPending() (*redis.XPending, error) {
-	stream, ok := streamList[g.streamName]
-	if !ok {
-		return nil, errors.New("not found stream")
-	}
-	result, err := Client.XPending(context.Background(), stream.Name(), g.name).Result()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 type Consumer interface {
 	work(chan *Hook)
 	Name() string
@@ -175,47 +282,47 @@ type Consumer interface {
 	SetCallback(CallbackFunc)
 }
 
-// HandelConsumer 消费者
-type HandelConsumer struct {
+// NormalConsumer 消费者
+type NormalConsumer struct {
 	name       string
 	groupName  string
 	streamName string
 	callback   CallbackFunc
 }
 
-func (c *HandelConsumer) Callback() CallbackFunc {
+func (c *NormalConsumer) Callback() CallbackFunc {
 	return c.callback
 }
 
-func (c *HandelConsumer) SetCallback(exec CallbackFunc) {
+func (c *NormalConsumer) SetCallback(exec CallbackFunc) {
 	c.callback = exec
 }
 
-func (c *HandelConsumer) Name() string {
+func (c *NormalConsumer) Name() string {
 	return c.name
 }
 
-func (c *HandelConsumer) SetName(name string) {
+func (c *NormalConsumer) SetName(name string) {
 	c.name = name
 }
 
-func (c *HandelConsumer) GroupName() string {
+func (c *NormalConsumer) GroupName() string {
 	return c.groupName
 }
 
-func (c *HandelConsumer) SetGroupName(groupName string) {
+func (c *NormalConsumer) SetGroupName(groupName string) {
 	c.groupName = groupName
 }
 
-func (c *HandelConsumer) StreamName() string {
+func (c *NormalConsumer) StreamName() string {
 	return c.streamName
 }
 
-func (c *HandelConsumer) SetStreamName(streamName string) {
+func (c *NormalConsumer) SetStreamName(streamName string) {
 	c.streamName = streamName
 }
 
-func (c *HandelConsumer) work(hook chan *Hook) {
+func (c *NormalConsumer) work(hook chan *Hook) {
 	for {
 		result, err := Client.XReadGroup(context.Background(), &redis.XReadGroupArgs{
 			Group:    c.groupName,
@@ -252,29 +359,128 @@ func (c *HandelConsumer) work(hook chan *Hook) {
 				ack, err := Client.XAck(context.Background(), c.streamName, c.groupName, msg.Id).Result()
 				if err != nil {
 					hook <- &Hook{
-						name: &CallbackSuccess,
+						name: &AckMsgFail,
 						data: map[string]any{
 							"consumer":     c.name,
-							"callback_res": AckMsgFail,
+							"callback_res": callbackResult,
 							"msg":          msg,
 							"ack":          ack,
 						},
 					}
 					continue
-				} else {
-					hook <- &Hook{
-						name: &CallbackSuccess,
-						data: map[string]any{
-							"consumer":     c.name,
-							"callback_res": callbackResult,
-							"msg":          msg,
-						},
-					}
-					continue
+				}
+				hook <- &Hook{
+					name: &CallbackSuccess,
+					data: map[string]any{
+						"consumer":     c.name,
+						"callback_res": callbackResult,
+						"msg":          msg,
+					},
 				}
 			}
 		}
 		//time.Sleep(1 * time.Second)
+	}
+}
+
+type DelayConsumer struct {
+	name       string
+	groupName  string
+	streamName string
+	callback   CallbackFunc
+}
+
+func (d *DelayConsumer) Name() string {
+	return d.name
+}
+
+func (d *DelayConsumer) SetName(name string) {
+	d.name = name
+}
+
+func (d *DelayConsumer) GroupName() string {
+	return d.groupName
+}
+
+func (d *DelayConsumer) SetGroupName(groupName string) {
+	d.groupName = groupName
+}
+
+func (d *DelayConsumer) StreamName() string {
+	return d.streamName
+}
+
+func (d *DelayConsumer) SetStreamName(streamName string) {
+	d.streamName = streamName
+}
+
+func (d *DelayConsumer) Callback() CallbackFunc {
+	return d.callback
+}
+
+func (d *DelayConsumer) SetCallback(callback CallbackFunc) {
+	d.callback = callback
+}
+
+func (d *DelayConsumer) work(hook chan *Hook) {
+	for {
+		now := time.Now().Unix()
+		var nowStr string
+		nowStr = strconv.FormatInt(now, 10)
+		result, err := Client.ZRangeByScore(context.Background(), d.StreamName(), &redis.ZRangeBy{
+			Min: "0",
+			Max: nowStr,
+		}).Result()
+		if err != nil {
+			// todo
+		}
+		for _, member := range result {
+			msg := Json2Msg(member)
+			hook <- &Hook{
+				name: &PopSuccess,
+				data: map[string]any{
+					"consumer": d.name,
+					"msg":      msg,
+				},
+			}
+			callbackResult := (d.Callback())(msg)
+			if callbackResult.Err != nil {
+				hook <- &Hook{
+					name: &CallbackFail,
+					data: map[string]any{
+						"consumer":     d.name,
+						"callback_res": callbackResult,
+						"msg":          msg,
+					},
+				}
+				continue
+			}
+			// todo
+
+			i, err := Client.ZRem(context.Background(), d.StreamName(), member).Result()
+			if err != nil {
+				hook <- &Hook{
+					name: &AckMsgFail,
+					data: map[string]any{
+						"consumer":     d.name,
+						"callback_res": callbackResult,
+						"msg":          msg,
+						"ack":          i,
+					},
+				}
+				continue
+			}
+			hook <- &Hook{
+				name: &CallbackSuccess,
+				data: map[string]any{
+					"consumer":     d.name,
+					"callback_res": callbackResult,
+					"msg":          msg,
+				},
+			}
+			continue
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -285,76 +491,6 @@ func Init(name string, client *redis.Client) {
 
 func generateFullStreamName(name string, sType SType) string {
 	return GlobalName + ":" + string(sType) + ":" + name
-}
-
-func CreateStream(stream Stream) error {
-	if stream.Name() == "" {
-		return errors.New("empty stream name")
-	}
-
-	if _, ok := streamList[stream.Name()]; ok {
-		return errors.New("repeat stream")
-	}
-
-	stream.SetFullName(generateFullStreamName(stream.Name(), StreamType(stream)))
-	stream.SetHook(make(chan *Hook))
-
-	if stream.HandelGroup() == nil {
-		stream.SetHandelGroup(&XGroup{
-			streamName: stream.FullName(),
-			name:       "name",
-			start:      "$", // 指定从最后一条开始读取
-			ConsumerList: []Consumer{
-				&HandelConsumer{
-					name: "handel1",
-				},
-				&HandelConsumer{
-					name: "handel2",
-				},
-			},
-		})
-	}
-	// 创建消费组时如果指定的 stream 不存在会报错。增加参数 MKSTREAM ，可以在 stream 不存在时自动创建它
-	res, err := Client.XGroupCreateMkStream(context.Background(), stream.FullName(), stream.HandelGroup().name, stream.HandelGroup().start).Result()
-	if err != nil {
-		// todo
-	}
-	logger.Info("队列：" + stream.FullName() + "创建执行消费者组" + res)
-	for k, consumer := range stream.HandelGroup().ConsumerList {
-		if consumer.Name() == "" {
-			return errors.New("empty consumer name")
-		}
-		stream.HandelGroup().ConsumerList[k].SetStreamName(stream.FullName())
-		stream.HandelGroup().ConsumerList[k].SetGroupName(stream.HandelGroup().name)
-		_, err = Client.XGroupCreateConsumer(context.Background(), stream.FullName(), stream.HandelGroup().name, consumer.Name()).Result()
-		if err != nil {
-			// todo
-		}
-		consumer.SetCallback(func(msg *Msg) *CallbackResult {
-			fun, ok := CallbackMap[msg.CallbackName]
-			if !ok {
-				stream.Hook() <- &Hook{
-					name: &UndefinedCallback,
-					data: map[string]any{
-						"msg": msg,
-					},
-				}
-				return &CallbackResult{
-					Err:      errors.New("undefined callback"),
-					Msg:      "undefined callback",
-					Code:     1,
-					BackData: nil,
-				}
-			} else {
-				return (*fun)(msg)
-			}
-		})
-		logger.Info("队列：" + stream.FullName() + "执行消费者组创建消费者：" + consumer.Name())
-	}
-
-	streamList[stream.Name()] = stream
-	EchoInfo(stream.Name())
-	return nil
 }
 
 // EchoInfo 输出 stream 全部信息
@@ -415,6 +551,7 @@ func Push(queueName, c, callback string, data map[string]interface{}) (string, e
 	stream := streamList[queueName]
 	var msg = Msg{
 		C:            c,
+		MsgType:      Normal,
 		CallbackName: callback,
 		Data:         data,
 	}
@@ -440,16 +577,20 @@ func Push(queueName, c, callback string, data map[string]interface{}) (string, e
 	return result, err
 }
 
-func PushDaly(body map[string]interface{}, queueName string, sType SType, second int) (string, error) {
-	id := time.Now().UnixMilli()
-	id += int64(second) * int64(time.Millisecond)
-	fmt.Println(strconv.Itoa(int(id)))
+func PushDaly(queueName, callback, c string, data map[string]any, second int) (int64, error) {
+	var score int64
+	score = time.Now().Unix() + int64(second)
 
-	var b = &redis.XAddArgs{
-		Stream: generateFullStreamName(queueName, sType),
-		MaxLen: 0,
-		ID:     strconv.Itoa(int(id)),
-		Values: body,
+	var msg = Msg{
+		C:            c,
+		MsgType:      Delay,
+		CallbackName: callback,
+		Data:         data,
+		Id:           strconv.FormatInt(score, 10) + "-" + strconv.Itoa(random.Number(10000, 99999)),
 	}
-	return Client.XAdd(context.Background(), b).Result()
+	stream := streamList[queueName]
+	return Client.ZAdd(context.Background(), stream.FullName(), redis.Z{
+		Member: msg,
+		Score:  float64(score),
+	}).Result()
 }

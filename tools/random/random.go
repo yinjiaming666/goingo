@@ -20,3 +20,12 @@ func Str(lens int) string {
 	}
 	return string(b)
 }
+
+func Number(start, end int) int {
+	if end < start {
+		t := end
+		end = start
+		start = t
+	}
+	return rand.Intn(end-start) + start // (end-start)+start
+}
