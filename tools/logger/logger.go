@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -15,7 +16,7 @@ var AccessLogFilePath = "log/access.log"
 
 func InitLog() {
 	_ = os.Mkdir("log", os.ModePerm)
-	systemFileHandel, _ = os.OpenFile("log/system.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	systemFileHandel, _ = os.OpenFile("log/system.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	var err error
 
 	date := time.Now().Format("2006-01-02")
@@ -33,7 +34,7 @@ func InitLog() {
 			}
 		}
 		infoFileName := "log/" + date + "/info.log"
-		infoFileHandel, err = os.OpenFile(infoFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+		infoFileHandel, err = os.OpenFile(infoFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 		if err != nil {
 			fmt.Println("日志服务错误【3】" + err.Error())
 			return
@@ -47,14 +48,33 @@ func InitLog() {
 			}
 		}
 		errFileName := "log/" + date + "/err.log"
-		errFileHandel, err = os.OpenFile(errFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+		errFileHandel, err = os.OpenFile(errFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 		if err != nil {
 			fmt.Println("日志服务错误【4】" + err.Error())
 			return
 		}
 
 		_ = os.Mkdir("log/"+yesterday, os.ModePerm)
-		_ = os.Rename(AccessLogFilePath, "log/"+yesterday+"/access.log")
+		fromAccessFile, _ := os.OpenFile(AccessLogFilePath, os.O_RDWR, os.ModePerm)
+		toAccessFile, _ := os.OpenFile("log/"+yesterday+"/access.log", os.O_RDWR|os.O_CREATE, os.ModePerm)
+		defer func() {
+			err := fromAccessFile.Truncate(0)
+			if err != nil {
+				fmt.Println(err)
+				fmt.Println("文件清空失败")
+			}
+			_, err = fromAccessFile.Seek(0, 0)
+			if err != nil {
+				fmt.Println(err)
+				fmt.Println("文件重置偏移失败")
+			}
+			_ = fromAccessFile.Close()
+		}()
+
+		defer func() {
+			_ = toAccessFile.Close()
+		}()
+		_, _ = io.Copy(toAccessFile, fromAccessFile)
 	}
 
 	initDir(date, yesterday)
