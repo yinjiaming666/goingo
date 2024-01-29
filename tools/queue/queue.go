@@ -379,7 +379,7 @@ func (c *NormalConsumer) work(hook chan *Hook) {
 				}
 			}
 		}
-		//time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
