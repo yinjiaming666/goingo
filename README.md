@@ -30,6 +30,14 @@
 ├── log                 // 运行日志
 ├── main.go             // 入口文件
 └── tools               // 通用工具
+    ├── conv
+    ├── jwt            
+    ├── key_utils
+    ├── logger          // 日志
+    ├── queue           // 队列
+    ├── random
+    ├── resp            // 响应
+    └── utils.go
 ```
 
 ## 运行
@@ -44,49 +52,96 @@ go run main.go -mode=dev
 
 ## 队列
 
-> 队列是基于 redis 的 stream 实现的 <br>
+> 队列是基于 redis 的 stream 实现的 <br> 延时队列是基于 redis 的 zset 实现的
 
 ### 初始化队列
 
 ```
 queue.Init("goingo-queue", model.RedisClient)
-stream := &queue.NormalStream{}
+
+// 延时队列
+stream := &queue.DelayStream{}
 stream.SetName("default")
-err := queue.CreateStream(stream) //（redis key name goingo-queue:normal:default）
+err := stream.Create()  //（redis key name goingo-queue:delay:default）
 if err != nil {
     fmt.Println(err.Error())
     return
 }
-stream.Loop()
+go stream.Loop()
+
+// 消息队列
+stream = &queue.NormalStream{}
+stream.SetName("default")
+err := stream.Create()  //（redis key name goingo-queue:normal:default）
+if err != nil {
+    fmt.Println(err.Error())
+    return
+}
+go stream.Loop()
 ```
 
 ### 队列投入数据
 
-``
-queue.Push("default", "controller", "test", map[string]interface{}{"name": "张三", "age": 19})
-``
+#### 消息队列
 
-### 注册回调
+> `queue.Push(队列名称, 回调名称, map[string]interface{}{"name": "张三", "age": 19})`
+
+#### 延时队列
+
+> `queue.PushDelay(队列名称, 回调名称, map[string]interface{}{"name": "张三", "age": 19}, 延时秒数)`
+
+### 回调与钩子
+
+#### 注册回调
 
 ```
 var pF queue.CallbackFunc = func(msg *queue.Msg) *queue.CallbackResult {
-    return &queue.CallbackResult{}
+	// 业务逻辑
+	return &queue.CallbackResult{
+		Err:      nil,
+		Msg:      "",
+		Code:     0, // 0 成功，1 失败
+		BackData: nil,
+	}
 }
 queue.RegisterCallback("test", &pF)
 ```
 
-### 注册钩子
+#### 注册钩子
 
 ```
-var u queue.HookFunc = func(msg *queue.Hook) *queue.HookResult {
-    fmt.Println("UndefinedCallback")
-	fmt.Println(msg.GetValue("msg"))
-	return &queue.HookResult{}
+var u queue.HookFunc = func(stream queue.Stream, data map[string]any) *queue.HookResult {
+	_, ok := data["msg"]
+	if !ok {
+		return &queue.HookResult{
+			Err:      errors.New("nil msg"),
+			Msg:      "nil msg",
+			Code:     1,
+			BackData: nil,}
+	}
+	msg := data["msg"].(*queue.Msg)
+	_, ok = data["consumer"]
+	if !ok {
+		return &queue.HookResult{
+			Err:      errors.New("nil consumer"),
+			Msg:      "nil consumer",
+			Code:     1,
+			BackData: nil,}
+	}
+	consumer := data["consumer"].(string)
+	logger.System("CALLBACK MSG", "Msg", msg.Id, "consumer", consumer)
+	queue.Client.XDel(context.Background(), stream.FullName(), msg.Id)
+	return &queue.HookResult{
+		Err:      nil,
+		Msg:      "success",
+		Code:     0,
+		BackData: nil,
+	}
 }
-queue.RegisterHook(queue.UndefinedCallback, &u)
+queue.RegisterHook(queue.CallbackSuccess, &u)
 ```
 
-#### 事件列表
+#### 钩子事件列表
 
 <ul>
     <li>PushSuccess 队列放入数据事件</li>
@@ -117,38 +172,61 @@ func main() {
 	queue.Init("goingo-queue", model.RedisClient)
 	stream := &queue.NormalStream{}
 	stream.SetName("default")
-	err := queue.CreateStream(stream) // 初始化创建队列（redis key name goingo-queue:normal:default）
+	err := stream.Create() // 初始化创建队列（redis key name goingo-queue:normal:default）
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
 	// 队列投入数据，callbackName 需要通过 RegisterHook 注册回调
-	queue.Push("default", "controller", "test", map[string]interface{}{"name": "张三", "age": 19})
+	queue.Push("default", "test", map[string]interface{}{"name": "张三", "age": 19})
 
 	// 注册回调
 	var pF queue.CallbackFunc = func(msg *queue.Msg) *queue.CallbackResult {
-		return &queue.CallbackResult{}
+		// 业务逻辑
+		return &queue.CallbackResult{
+			Err:      nil,
+			Msg:      "",
+			Code:     0, // 0 成功，1 失败
+			BackData: nil,
+		}
 	}
 	queue.RegisterCallback("test", &pF)
 
 	// 注册钩子
-	var u queue.HookFunc = func(msg *queue.Hook) *queue.HookResult {
-		fmt.Println("UndefinedCallback")
-		fmt.Println(msg.GetValue("msg"))
-		return &queue.HookResult{}
+	var u queue.HookFunc = func(stream queue.Stream, data map[string]any) *queue.HookResult {
+		_, ok := data["msg"]
+		if !ok {
+			return &queue.HookResult{
+				Err:      errors.New("nil msg"),
+				Msg:      "nil msg",
+				Code:     1,
+				BackData: nil,
+			}
+		}
+		msg := data["msg"].(*queue.Msg)
+
+		_, ok = data["consumer"]
+		if !ok {
+			return &queue.HookResult{
+				Err:      errors.New("nil consumer"),
+				Msg:      "nil consumer",
+				Code:     1,
+				BackData: nil,
+			}
+		}
+		consumer := data["consumer"].(string)
+		logger.System("CALLBACK MSG", "Msg", msg.Id, "consumer", consumer)
+		return &queue.HookResult{
+			Err:      nil,
+			Msg:      "success",
+			Code:     0,
+			BackData: nil,
+		}
 	}
-	queue.RegisterHook(queue.UndefinedCallback, &u)
+	queue.RegisterHook(queue.CallbackSuccess, &u)
 	stream.Loop()
 }
-
-
-queue.Init("goingo-queue", model.RedisClient)
-stream := &queue.NormalStream{}
-stream.SetName("default")
-queue.CreateStream(stream) // 
-stream.Loop() // 队列监听
-
 ```
 
 ## 打包上传到服务器

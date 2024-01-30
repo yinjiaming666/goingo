@@ -17,7 +17,7 @@ var streamList = make(map[string]Stream)
 
 type SType string
 
-// Normal 普通队列
+// Normal 消息队列
 var Normal SType = "normal"
 
 // Delay 延时队列
@@ -36,7 +36,7 @@ type Stream interface {
 	Create() error
 }
 
-// NormalStream 普通队列
+// NormalStream 消息队列
 type NormalStream struct {
 	name        string
 	fullName    string  // redis 里存的名字
@@ -120,6 +120,7 @@ func (n *NormalStream) Loop() {
 	}
 	// 用于执行钩子
 	go listenHook(n)
+	select {}
 }
 
 func listenHook(s Stream) {
@@ -228,6 +229,7 @@ func (d *DelayStream) Loop() {
 	// 用于执行钩子
 	go listenHook(d)
 	go d.handelGroup.ConsumerList[0].work(d.Hook())
+	select {}
 }
 
 func (d *DelayStream) Name() string {
@@ -547,10 +549,10 @@ func StreamType(stream Stream) SType {
 	}
 }
 
-func Push(queueName, c, callback string, data map[string]interface{}) (string, error) {
+func Push(queueName, callback string, data map[string]interface{}) (string, error) {
 	stream := streamList[queueName]
 	var msg = Msg{
-		C:            c,
+		C:            callback,
 		MsgType:      Normal,
 		CallbackName: callback,
 		Data:         data,
@@ -577,12 +579,12 @@ func Push(queueName, c, callback string, data map[string]interface{}) (string, e
 	return result, err
 }
 
-func PushDaly(queueName, callback, c string, data map[string]any, second int) (int64, error) {
+func PushDelay(queueName, callback string, data map[string]any, second int) (int64, error) {
 	var score int64
 	score = time.Now().Unix() + int64(second)
 
 	var msg = Msg{
-		C:            c,
+		C:            callback,
 		MsgType:      Delay,
 		CallbackName: callback,
 		Data:         data,
