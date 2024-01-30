@@ -1170,3 +1170,17 @@ func Map2AnyMap[T any](before map[string]T) map[string]any {
 	}
 	return m
 }
+
+type builtinT interface {
+	string | int | uint | float32 | float64 | uint8 | uint16 | uint32 | uint64 | int8 | int16 | int32 | int64 | bool | complex64 | complex128
+}
+
+// InSlice 判断切片中是否存在某元素
+func InSlice[T builtinT](list []T, item T) (int, T) {
+	for k, v := range list {
+		if v == item {
+			return k, v
+		}
+	}
+	return -1, item
+}

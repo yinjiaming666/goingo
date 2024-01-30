@@ -12,7 +12,7 @@ func CheckJwt() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		token := c.Request.Header.Get("Token")
 		if token == "" {
-			resp.Resp(resp.ReFail, "请上传jwt", nil)
+			resp.Resp(resp.ReAuthFail, "请上传jwt", nil)
 		}
 		// golang 变量作用域跟 js 的 let 类似，for if switch 中声明的变量不能拿到外面去用
 		tl := logic2.TokenLogic{}
@@ -25,7 +25,7 @@ func CheckJwt() func(c *gin.Context) {
 			}
 			user = user.GetAdmin()
 			if user.Id <= 0 {
-				resp.Resp(resp.ReFail, "未查询到用户", nil)
+				resp.Resp(resp.ReAuthFail, "未查询到用户", nil)
 			}
 			c.Set(string(jwt.AdminJwtType), user) // c.Set() c.Get 跨中间件取值
 			c.Next()
@@ -34,7 +34,7 @@ func CheckJwt() func(c *gin.Context) {
 			userLogic := logic2.UserLogic{}
 			user := userLogic.LoadUser(data.Uid)
 			if user.Id <= 0 {
-				resp.Resp(resp.ReFail, "未查询到用户", nil)
+				resp.Resp(resp.ReAuthFail, "未查询到用户", nil)
 			}
 			c.Set(string(jwt.IndexJwtType), user) // c.Set() c.Get 跨中间件取值
 			c.Next()

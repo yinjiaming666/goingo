@@ -3,7 +3,11 @@ package resp
 type Code uint
 
 const ReSuccess Code = 200
+
 const ReFail Code = 400
+const ReAuthFail Code = 401
+const ReIllegalIp Code = 402
+
 const ReError Code = 500
 
 type Response struct {

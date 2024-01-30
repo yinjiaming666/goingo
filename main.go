@@ -5,40 +5,58 @@ import (
 	"flag"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	global "goingo/internal"
 	"goingo/internal/model"
 	"goingo/internal/router"
 	"goingo/tools"
 	"goingo/tools/logger"
 	"goingo/tools/queue"
+	"net"
 	"time"
 )
 
-var mode = flag.String("mode", "dev", "-mode=prod,-mode=dev")
-
-var serverName = tools.GetConfig(*mode, "server", "name")
-var initDb = flag.String("initDb", "false", "-initDb=true, -initDb=false")
-
 func main() {
+	global.Mode = *flag.String("mode", "dev", "-mode=prod,-mode=dev") // "dev" or "prod"
+	global.ServerName = tools.GetConfig(global.Mode, "server", "name")
+	global.InitDb = *flag.String("initDb", "false", "-initDb=true, -initDb=false")
 	flag.Parse()
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	time.Local = loc
 
+	var err error
+
+	addrList, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println("获取本地 ip 失败" + err.Error())
+		return
+	}
+	// 取第一个非lo的网卡IP
+	for _, addr := range addrList {
+		// 这个网络地址是IP地址: ipv4, ipv6
+		if ipNet, isIpNet := addr.(*net.IPNet); isIpNet && !ipNet.IP.IsLoopback() {
+			// 跳过IPV6
+			if ipNet.IP.To4() != nil {
+				global.LocalIp = ipNet.IP.String()
+				break
+			}
+		}
+	}
+
 	logger.InitLog()
 	model.InitDb(&model.DbConf{
-		UserName: tools.GetConfig(*mode, "mysql", "username"),
-		Password: tools.GetConfig(*mode, "mysql", "password"),
-		Ip:       tools.GetConfig(*mode, "mysql", "ip"),
-		Port:     tools.GetConfig(*mode, "mysql", "port"),
-		DbName:   tools.GetConfig(*mode, "mysql", "db_name"),
+		UserName: tools.GetConfig(global.Mode, "mysql", "username"),
+		Password: tools.GetConfig(global.Mode, "mysql", "password"),
+		Ip:       tools.GetConfig(global.Mode, "mysql", "ip"),
+		Port:     tools.GetConfig(global.Mode, "mysql", "port"),
+		DbName:   tools.GetConfig(global.Mode, "mysql", "db_name"),
 	})
 
 	model.InitRedis(&model.RedisConf{
-		Ip:         tools.GetConfig(*mode, "redis", "ip"),
-		Port:       tools.GetConfig(*mode, "redis", "port"),
-		GlobalName: serverName,
+		Ip:   tools.GetConfig(global.Mode, "redis", "ip"),
+		Port: tools.GetConfig(global.Mode, "redis", "port"),
 	})
 
-	if *initDb == "true" {
+	if global.InitDb == "true" {
 		logger.Info("start init table ====================")
 		m := new(model.MysqlBaseModel)
 		m.CreateTable(model.User{})
@@ -50,13 +68,13 @@ func main() {
 	}
 
 	queue.Init("goingo-queue", redis.NewClient(&redis.Options{
-		Addr: tools.GetConfig(*mode, "queue", "ip") + ":" + tools.GetConfig(*mode, "queue", "port"),
+		Addr: tools.GetConfig(global.Mode, "queue", "ip") + ":" + tools.GetConfig(global.Mode, "queue", "port"),
 	}))
 
 	// 消息队列
 	stream := &queue.NormalStream{}
 	stream.SetName("default")
-	err := stream.Create()
+	err = stream.Create()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -75,7 +93,7 @@ func main() {
 
 	initQueueFunc()
 
-	port := tools.GetConfig(*mode, "server", "port")
+	port := tools.GetConfig(global.Mode, "server", "port")
 	router.InitRouter(port)
 }
 

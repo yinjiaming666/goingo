@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"github.com/redis/go-redis/v9"
+	global "goingo/internal"
 	"goingo/tools/key_utils"
 	"goingo/tools/logger"
 )
@@ -12,9 +13,8 @@ var RedisClient = &redis.Client{}
 var KeyUtils = &key_utils.KeyUtils{}
 
 type RedisConf struct {
-	Ip         string
-	Port       string
-	GlobalName string
+	Ip   string
+	Port string
 }
 
 func InitRedis(c *RedisConf) {
@@ -31,5 +31,5 @@ func InitRedis(c *RedisConf) {
 		logger.Error("redis init success", res)
 	}
 
-	KeyUtils.BaseName = c.GlobalName
+	KeyUtils.BaseName = global.ServerName
 }

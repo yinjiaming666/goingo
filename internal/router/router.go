@@ -15,6 +15,8 @@ type RouteGateway interface {
 }
 
 func InitRouter(port string) {
+	var err error
+
 	r := gin.New()
 	r.Use(middleware2.CORSMiddleware()) // 解决跨域
 
@@ -48,7 +50,7 @@ func InitRouter(port string) {
 	AdminRoute.initRoute()
 	IndexRoute.initRoute()
 
-	err := r.Run(":" + port)
+	err = r.Run(":" + port)
 	if err != nil {
 		fmt.Println(err)
 		return

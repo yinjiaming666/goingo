@@ -27,6 +27,7 @@
 │   ├── model           // 模型
 │   ├── router          // 路由
 │   └── server          // 接口
+│   └── global.go       // 存放全局变量
 ├── log                 // 运行日志
 ├── main.go             // 入口文件
 └── tools               // 通用工具
