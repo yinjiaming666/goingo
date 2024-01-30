@@ -33,7 +33,7 @@ func RespMiddleware() gin.HandlerFunc {
 					fmt.Println(tools.PrintStackTrace(e.(error))) // 打印堆栈信息
 					logger.Error(e.(error).Error(), "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm)
 					c.AbortWithStatusJSON(200, gin.H{
-						"code": 500,
+						"code": resp.ReError,
 						"msg":  e.(error).Error(),
 						"data": map[string]any{},
 					})

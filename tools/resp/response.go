@@ -1,15 +1,18 @@
 package resp
 
-const ReSuccess = 200
-const ReFail = 400
+type Code uint
+
+const ReSuccess Code = 200
+const ReFail Code = 400
+const ReError Code = 500
 
 type Response struct {
-	Code    int
+	Code    Code
 	Message string
 	Data    interface{}
 }
 
-func Resp(code int, msg string, obj interface{}) {
+func Resp(code Code, msg string, obj interface{}) {
 	panic(&Response{
 		Code:    code,
 		Message: msg,
