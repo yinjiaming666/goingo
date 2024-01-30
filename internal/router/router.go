@@ -48,5 +48,9 @@ func InitRouter(port string) {
 	AdminRoute.initRoute()
 	IndexRoute.initRoute()
 
-	r.Run(":" + port)
+	err := r.Run(":" + port)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }

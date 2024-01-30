@@ -49,8 +49,8 @@ func (n *NormalStream) Create() error {
 		return errors.New("empty stream name")
 	}
 
-	if _, ok := streamList[n.Name()]; ok {
-		return errors.New("repeat stream")
+	if _, ok := streamList[string(Normal)+"-"+n.Name()]; ok {
+		return errors.New("repeat stream:'" + string(Normal) + "-" + n.Name() + "'")
 	}
 
 	n.SetFullName(generateFullStreamName(n.Name(), Normal))
@@ -109,8 +109,8 @@ func (n *NormalStream) Create() error {
 		logger.Info("队列：" + n.FullName() + "执行消费者组创建消费者：" + consumer.Name())
 	}
 
-	streamList[n.Name()] = n
-	EchoInfo(n.Name())
+	streamList[string(Normal)+"-"+n.Name()] = n
+	//EchoInfo(n.Name())
 	return nil
 }
 
@@ -182,8 +182,8 @@ func (d *DelayStream) Create() error {
 	if d.Name() == "" {
 		return errors.New("empty stream name")
 	}
-	if _, ok := streamList[d.Name()]; ok {
-		return errors.New("repeat stream")
+	if _, ok := streamList[string(Delay)+"-"+d.Name()]; ok {
+		return errors.New("repeat stream:'" + string(Delay) + "-" + d.Name() + "'")
 	}
 	d.SetFullName(generateFullStreamName(d.Name(), Delay))
 	d.SetHandelGroup(&XGroup{
@@ -221,7 +221,7 @@ func (d *DelayStream) Create() error {
 	)
 	d.SetFullName(generateFullStreamName(d.Name(), Delay))
 	d.SetHook(make(chan *Hook))
-	streamList[d.Name()] = d
+	streamList[string(Delay)+"-"+d.Name()] = d
 	return nil
 }
 
@@ -550,7 +550,7 @@ func StreamType(stream Stream) SType {
 }
 
 func Push(queueName, callback string, data map[string]interface{}) (string, error) {
-	stream := streamList[queueName]
+	stream := streamList[string(Normal)+"-"+queueName]
 	var msg = Msg{
 		C:            callback,
 		MsgType:      Normal,
@@ -590,7 +590,7 @@ func PushDelay(queueName, callback string, data map[string]any, second int) (int
 		Data:         data,
 		Id:           strconv.FormatInt(score, 10) + "-" + strconv.Itoa(random.Number(10000, 99999)),
 	}
-	stream := streamList[queueName]
+	stream := streamList[string(Delay)+"-"+queueName]
 	return Client.ZAdd(context.Background(), stream.FullName(), redis.Z{
 		Member: msg,
 		Score:  float64(score),

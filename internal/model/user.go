@@ -36,7 +36,6 @@ func (user *User) DoRegister() uint {
 	return user.Id
 }
 
-// todo
 func (user *User) SetUser() *User {
 	if user.Password != "" {
 		user.Password = tools.Md5(user.Password, UserPwdSalt)
