@@ -60,17 +60,17 @@ go run main.go -mode=dev
 queue.Init("goingo-queue", model.RedisClient)
 
 // 延时队列
-stream := &queue.DelayStream{}
-stream.SetName("default")
-err := stream.Create()  //（redis key name goingo-queue:delay:default）
+delayStream := &queue.DelayStream{}
+delayStream.SetName("default")
+err := delayStream.Create()  //（redis key name goingo-queue:delay:default）
 if err != nil {
     fmt.Println(err.Error())
     return
 }
-go stream.Loop()
+go delayStream.Loop()
 
 // 消息队列
-stream = &queue.NormalStream{}
+stream := &queue.NormalStream{}
 stream.SetName("default")
 err := stream.Create()  //（redis key name goingo-queue:normal:default）
 if err != nil {
