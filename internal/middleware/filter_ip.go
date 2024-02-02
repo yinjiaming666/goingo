@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	global "goingo/internal"
 	"goingo/tools/conv"
@@ -17,7 +16,6 @@ func FilterIp(allowIp []string) func(c *gin.Context) {
 		}
 
 		ip := c.ClientIP()
-		fmt.Println(ip)
 		if ip == "::1" || ip == "localhost" {
 			ip = global.LocalIp
 		}

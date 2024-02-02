@@ -3,7 +3,6 @@ package queue
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/redis/go-redis/v9"
 	"goingo/tools/logger"
 	"goingo/tools/random"
@@ -493,49 +492,6 @@ func Init(name string, client *redis.Client) {
 
 func generateFullStreamName(name string, sType SType) string {
 	return GlobalName + ":" + string(sType) + ":" + name
-}
-
-// EchoInfo 输出 stream 全部信息
-func EchoInfo(streamName string) {
-	s, ok := streamList[streamName]
-	if !ok {
-		fmt.Println("未查询到队列")
-		return
-	}
-
-	stream, err := Client.XInfoStream(context.Background(), s.FullName()).Result()
-	if err != nil {
-		fmt.Printf("队列 %s 获取失败：%v \n", s.FullName(), err)
-		return
-	}
-	fmt.Printf(">队列名称：%s \n", s.FullName())
-	fmt.Printf(">队列类型：%s \n", string(StreamType(s)))
-	fmt.Printf(">队列长度：%d \n", stream.Length)
-	fmt.Printf(">FirstEntry：%v \n", stream.FirstEntry)
-	fmt.Printf(">LastEntry：%v \n", stream.LastEntry)
-	fmt.Printf(">RecordedFirstEntryID：%s \n", stream.RecordedFirstEntryID)
-
-	groups, err := Client.XInfoGroups(context.Background(), s.FullName()).Result()
-	if err != nil {
-		fmt.Printf("消费组获取失败：%v \n", err)
-		return
-	}
-	for _, group := range groups {
-		fmt.Printf(">    消费组名称：%s \n", group.Name)
-		fmt.Printf(">    Consumers：%d \n", group.Consumers)
-		fmt.Printf(">    Pending：%d \n", group.Pending)
-		fmt.Printf(">    LastDeliveredID：%s \n", group.LastDeliveredID)
-		fmt.Printf(">    EntriesRead：%d \n", group.EntriesRead)
-		fmt.Printf(">    Lag：%d \n", group.Lag)
-		consumers, _ := Client.XInfoConsumers(context.Background(), s.FullName(), group.Name).Result()
-		for _, consumer := range consumers {
-			fmt.Printf(">        消费者名称：%s \n", consumer.Name)
-			fmt.Printf(">        Pending：%d \n", consumer.Pending)
-			fmt.Printf(">        Idle：%s \n", consumer.Idle)
-			fmt.Printf(">        Inactive：%s \n", consumer.Inactive)
-		}
-	}
-	return
 }
 
 func StreamType(stream Stream) SType {
