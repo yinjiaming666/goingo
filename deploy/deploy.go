@@ -63,20 +63,6 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Println("elapsed time : ", elapsed)
 
-	// 执行shell
-	// kill 进程 kill $(ps -ef | grep blog)
-	client, err := sshConnect(userName, password, ip, 22)
-	if err != nil {
-		log.Fatal(err)
-	}
-	session, _ := client.NewSession()
-	defer session.Close()
-	buf, err := session.CombinedOutput("kill $(ps -ef | grep " + proName + ")")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("kill 进程：" + string(buf))
-
 	// 解压缩文件 cd /data/ && rm -f /data/blog/blog && tar -zxvf blog.tar.gz && rm -rf blog.tar.gz && cd blog && touch blog.log
 	session, _ = client.NewSession()
 	var str = ""
