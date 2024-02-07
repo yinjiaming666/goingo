@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,18 +13,30 @@ import (
 	"goingo/tools/logger"
 	"goingo/tools/queue"
 	"net"
+	"os"
+	"strconv"
 	"time"
 )
+
+var err error
 
 func main() {
 	global.Mode = *flag.String("mode", "dev", "-mode=prod,-mode=dev") // "dev" or "prod"
 	global.ServerName = tools.GetConfig(global.Mode, "server", "name")
 	global.InitDb = *flag.String("initDb", "false", "-initDb=true, -initDb=false")
 	flag.Parse()
-	loc, _ := time.LoadLocation("Asia/Shanghai")
-	time.Local = loc
+	time.Local, _ = time.LoadLocation("Asia/Shanghai")
 
-	var err error
+	pid := os.Getpid()
+	var buf = make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, uint32(pid))
+	f, _ := os.Create(global.ServerName + ".pid")
+	_, err = f.WriteString(strconv.Itoa(pid))
+	if err != nil {
+		fmt.Printf("进程 PID: %d 写入失败 \n", pid)
+		return
+	}
+	fmt.Printf("进程 PID: %d \n", pid)
 
 	addrList, err := net.InterfaceAddrs()
 	if err != nil {
