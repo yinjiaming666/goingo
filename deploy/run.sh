@@ -1,6 +1,6 @@
 #!/bin/bash
 PRO_NAME=$1
-pid=$(cd .. && cat $PRO_NAME.pid)
+pid=$(cd .. && cat "$PRO_NAME".pid)
 echo "结束进程 $pid"
 kill "$pid"
 
