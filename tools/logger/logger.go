@@ -1,10 +1,12 @@
 package logger
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -95,9 +97,24 @@ func InitLog() {
 	System("LOGGER INIT SUCCESS")
 }
 
+func Trace() string {
+	b := new(bytes.Buffer)
+	for i := 1; ; i++ {
+		pc, file, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		_, err := fmt.Fprintf(b, "%s:%d (0x%x)\n", file, line, pc)
+		if err != nil {
+			return ""
+		}
+	}
+	return b.String()
+}
+
 func Info(msg string, append ...any) {
-	fmt.Println(msg)
-	if errFileHandel != nil {
+	fmt.Println(msg, append)
+	if infoFileHandel != nil {
 		logHandel := slog.New(slog.NewTextHandler(infoFileHandel, nil))
 		slog.SetDefault(logHandel)
 		slog.Info(msg, append...)
@@ -111,11 +128,14 @@ func System(msg string, append ...any) {
 	slog.Info(msg, append...)
 }
 
-func Error(msg string, append ...any) {
-	fmt.Println(msg)
+func Error(msg string, appends ...any) {
+	t := Trace()
+	fmt.Println(t)
+	fmt.Print(msg, appends)
 	if errFileHandel != nil {
 		logHandel := slog.New(slog.NewTextHandler(errFileHandel, nil))
 		slog.SetDefault(logHandel)
-		slog.Error(msg, append...)
+		n := append([]any{"trace", t}, appends...)
+		slog.Error(msg, n...)
 	}
 }

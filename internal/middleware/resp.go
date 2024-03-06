@@ -3,7 +3,6 @@ package middleware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"goingo/tools"
 	"goingo/tools/logger"
 	"goingo/tools/resp"
 )
@@ -30,7 +29,6 @@ func RespMiddleware() gin.HandlerFunc {
 					return
 				case error:
 					// 捕获错误异常
-					fmt.Println(tools.PrintStackTrace(e.(error))) // 打印堆栈信息
 					logger.Error(e.(error).Error(), "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm)
 					c.AbortWithStatusJSON(200, gin.H{
 						"code": resp.ReError,
