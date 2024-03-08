@@ -63,6 +63,14 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Println("elapsed time : ", elapsed)
 
+	// 执行shell
+	client, err := sshConnect(userName, password, ip, 22)
+	if err != nil {
+		log.Fatal(err)
+	}
+	session, _ := client.NewSession()
+	defer session.Close()
+
 	// 解压缩文件 cd /data/ && rm -f /data/blog/blog && tar -zxvf blog.tar.gz && rm -rf blog.tar.gz && cd blog && touch blog.log
 	session, _ = client.NewSession()
 	var str = ""
@@ -72,6 +80,7 @@ func main() {
 	str += "rm -rf " + localPath + " && "
 	str += "cd " + proName + " && "
 	str += "touch " + proName + ".log"
+	var buf []byte
 	buf, err = session.CombinedOutput(str)
 	if err != nil {
 		fmt.Println(err)
