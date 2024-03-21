@@ -23,14 +23,14 @@ func IndexArticleList(c *gin.Context) {
 func GetArticleDetail(content *gin.Context) {
 	id, _ := strconv.Atoi(content.Query("id"))
 	if id <= 0 {
-		resp.Resp(resp.ReSuccess, "未查询到文章", nil)
+		resp.Resp(resp.ReFail, "未查询到文章", nil)
 	}
 	article := &model.Article{
 		Id: uint(id),
 	}
 	article = article.GetArticleDetail()
 	if article.Status == 1 {
-		resp.Resp(resp.ReSuccess, "未查询到文章", nil)
+		resp.Resp(resp.ReFail, "未查询到文章", nil)
 	}
 	resp.Resp(resp.ReSuccess, "请求成功", article)
 }

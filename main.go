@@ -21,12 +21,11 @@ import (
 var err error
 
 func main() {
-	global.Mode = *flag.String("mode", "dev", "-mode=prod,-mode=dev") // "dev" or "prod"
-	global.ServerName = tools.GetConfig(global.Mode, "server", "name")
-	global.InitDb = *flag.String("initDb", "false", "-initDb=true, -initDb=false")
+	flag.StringVar(&global.Mode, "mode", "dev", "-mode=prod, -mode=dev") // "dev" or "prod"
+	flag.StringVar(&global.InitDb, "initDb", "false", "-initDb=true, -initDb=false")
 	flag.Parse()
 	time.Local, _ = time.LoadLocation("Asia/Shanghai")
-
+	global.ServerName = tools.GetConfig(global.Mode, "server", "name")
 	pid := os.Getpid()
 	var buf = make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(pid))
