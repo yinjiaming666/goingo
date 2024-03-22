@@ -21,8 +21,7 @@ func FilterIp(allowIp []string) func(c *gin.Context) {
 		}
 		if k, _ := conv.InSlice(allowIp, ip); k < 0 {
 			// 允许所有 ip 访问
-			resp.Resp(resp.ReIllegalIp, "illegal IP", map[string]any{"ip": ip})
-			return
+			(&resp.JsonResp{Code: resp.ReIllegalIp, Message: "illegal IP", Body: map[string]any{"ip": ip}}).Response()
 		}
 		c.Next()
 	}

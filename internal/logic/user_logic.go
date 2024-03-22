@@ -17,7 +17,7 @@ func (u UserLogic) LoadUser(uid uint) *model2.User {
 	var cacheKey = model2.KeyUtils.GetUserKey(uid)
 	result, err := model2.RedisClient.HGetAll(context.Background(), cacheKey).Result()
 	if err != nil {
-		resp.Resp(resp.ReFail, "查询失败", struct{ e error }{e: err})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "查询失败", Body: map[string]any{"error": err.Error()}}).Response()
 	}
 
 	strUid, ok := result["id"]

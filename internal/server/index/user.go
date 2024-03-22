@@ -19,9 +19,7 @@ func RegisterUser(content *gin.Context) {
 	search["nickname"] = nickname
 	rep := userLogic.SearchUser(search)
 	if rep.Id > 0 {
-		resp.Resp(resp.ReFail, "当前用户已注册", map[string]any{})
-		content.Abort()
-		return
+		(&resp.JsonResp{Code: resp.ReSuccess, Message: "当前用户已注册", Body: nil}).Response()
 	}
 
 	user := model2.User{
@@ -30,9 +28,9 @@ func RegisterUser(content *gin.Context) {
 	}
 	uid := user.DoRegister()
 	if uid == 0 {
-		resp.Resp(resp.ReSuccess, "注册失败", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "注册失败", Body: nil}).Response()
 	}
-	resp.Resp(resp.ReSuccess, "注册成功", map[string]any{"user": user})
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "注册成功", Body: map[string]any{"user": user}}).Response()
 }
 
 // Login 用户登陆
@@ -47,7 +45,7 @@ func Login(content *gin.Context) {
 
 	userInfo := user.GetUserInfo()
 	if userInfo.Id <= 0 {
-		resp.Resp(resp.ReFail, "账号或密码错误", nil)
+		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response()
 		content.Abort()
 		return
 	}
@@ -59,13 +57,13 @@ func Login(content *gin.Context) {
 	data["token"] = j
 	data["token_info"] = userJwt
 	data["user"] = userInfo
-	resp.Resp(resp.ReSuccess, "登陆成功", data)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
 }
 
 func LoadUser(content *gin.Context) {
 	user, ok := content.Get(string(jwt.IndexJwtType))
 	if !ok {
-		resp.Resp(resp.ReFail, "未查询到用户", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "未查询到用户", Body: nil}).Response()
 	}
-	content.JSON(200, map[string]any{"user": user})
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "success", Body: map[string]any{"user": user}}).Response()
 }

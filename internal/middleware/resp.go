@@ -13,19 +13,14 @@ func RespMiddleware() gin.HandlerFunc {
 			e := recover()
 			if e != nil {
 				switch e.(type) {
-				case *resp.Response:
+				case resp.Response:
 					// 捕获响应
 					logger.Info("Response", "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm, "res", map[string]any{
-						"code": e.(*resp.Response).Code,
-						"msg":  e.(*resp.Response).Message,
-						"data": e.(*resp.Response).Data,
+						"code": e.(resp.Response).GetCode(),
+						"msg":  e.(resp.Response).GetMsg(),
+						"data": e.(resp.Response).GetBody(),
 					})
-					c.AbortWithStatusJSON(200, gin.H{
-						"code": e.(*resp.Response).Code,
-						"msg":  e.(*resp.Response).Message,
-						"data": e.(*resp.Response).Data,
-					})
-					c.Next()
+					resp.HandelResponse(e.(resp.Response), c)
 					return
 				case error:
 					// 捕获错误异常
@@ -35,6 +30,7 @@ func RespMiddleware() gin.HandlerFunc {
 						"msg":  e.(error).Error(),
 						"data": map[string]any{},
 					})
+					c.Error(e.(error))
 					c.Next()
 					return
 				default:

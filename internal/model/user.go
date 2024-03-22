@@ -29,9 +29,9 @@ func (user *User) DoRegister() uint {
 	user.CreateTime = int64(uint(time.Now().Unix()))
 	tx := db.Debug().Create(&user)
 	if tx.Error != nil {
-		resp.Resp(resp.ReFail, "错误", map[string]any{
+		(&resp.JsonResp{Code: resp.ReFail, Message: "错误", Body: map[string]any{
 			"error": tx.Error.Error(),
-		})
+		}}).Response()
 	}
 	return user.Id
 }

@@ -27,7 +27,7 @@ func SetArticle(content *gin.Context) {
 	}
 
 	article = article.SetArticle()
-	resp.Resp(resp.ReSuccess, "成功", nil)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
 }
 
 // DelArticle 删除文章
@@ -37,7 +37,7 @@ func DelArticle(content *gin.Context) {
 		Id: uint(id),
 	}
 	article.DelArticle()
-	resp.Resp(resp.ReSuccess, "成功", nil)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
 }
 
 // ArticleList 后台文章列表
@@ -68,7 +68,7 @@ func ArticleList(content *gin.Context) {
 
 	var article model2.ApiArticleList
 	data := article.GetArticleList(search)
-	resp.Resp(resp.ReSuccess, "成功", data)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: data}).Response()
 }
 
 // AdminLogin Login 管理员登录
@@ -77,7 +77,7 @@ func AdminLogin(content *gin.Context) {
 	password := content.PostForm("password")
 
 	if account == "" || password == "" {
-		resp.Resp(resp.ReFail, "请输入账号密码", nil)
+		(&resp.JsonResp{Code: resp.ReFail, Message: "请输入账号密码", Body: nil}).Response()
 	}
 
 	admin := &model2.Admin{
@@ -87,7 +87,7 @@ func AdminLogin(content *gin.Context) {
 
 	admin = admin.GetAdmin()
 	if admin.Id <= 0 {
-		resp.Resp(resp.ReFail, "账号密码错误", nil)
+		(&resp.JsonResp{Code: resp.ReFail, Message: "账号密码错误", Body: nil}).Response()
 	}
 
 	data := make(map[string]interface{})
@@ -97,7 +97,7 @@ func AdminLogin(content *gin.Context) {
 	data["token"] = j
 	data["token_info"] = userJwt
 	data["user"] = admin
-	resp.Resp(resp.ReSuccess, "登陆成功", data)
+	(&resp.JsonResp{Code: resp.ReFail, Message: "登陆成功", Body: nil}).Response()
 }
 
 // GetAdminInfo 获取管理员信息
@@ -106,13 +106,13 @@ func GetAdminInfo(c *gin.Context) {
 
 	data := make(map[string]interface{})
 	data["user"] = admin
-	resp.Resp(resp.ReSuccess, "登陆成功", data)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
 }
 
 // GetCateList 获取分类列表
 func GetCateList(_ *gin.Context) {
 	list := (new(model2.Cate)).GetCateList()
-	resp.Resp(resp.ReSuccess, "请求成功", list)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response()
 }
 
 // SetAdminInfo 更新管理员信息
@@ -120,7 +120,7 @@ func SetAdminInfo(c *gin.Context) {
 	temp, _ := c.Get(string(jwt.AdminJwtType))
 	admin, ok := temp.(*model2.Admin)
 	if !ok {
-		resp.Resp(resp.ReFail, "未查询到账号", nil)
+		(&resp.JsonResp{Code: resp.ReFail, Message: "未查询到账号", Body: nil}).Response()
 	}
 
 	name := c.PostForm("name")
@@ -142,18 +142,18 @@ func SetAdminInfo(c *gin.Context) {
 
 	admin = &model2.Admin{Id: admin.Id}
 	admin = admin.UpdateAdmin(data)
-	resp.Resp(resp.ReSuccess, "更新成功", admin)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response()
 }
 
 // GetArticleDetail 文章详情
 func GetArticleDetail(content *gin.Context) {
 	id, _ := strconv.Atoi(content.Query("id"))
 	if id <= 0 {
-		resp.Resp(resp.ReSuccess, "未查询到文章", model2.Article{})
+		(&resp.JsonResp{Code: resp.ReSuccess, Message: "未查询到文章", Body: model2.Article{}}).Response()
 	}
 	article := &model2.Article{
 		Id: uint(id),
 	}
 	article = article.GetArticleDetail()
-	resp.Resp(resp.ReSuccess, "请求成功", article)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response()
 }

@@ -35,7 +35,7 @@ func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (stri
 	m["type"], _ = conv.Conv[string](m["type"])
 	_, err := model2.RedisClient.HMSet(context.Background(), cacheKey, m).Result()
 	if err != nil {
-		resp.Resp(resp.ReFail, "jwt 缓存失败", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "jwt 缓存失败", Body: nil}).Response()
 	}
 	if exTime > 0 {
 		model2.RedisClient.Expire(context.Background(), cacheKey, time.Duration(exTime)*time.Second)
@@ -46,17 +46,17 @@ func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (stri
 func (tl *TokenLogic) CheckJwt(j string) *jwt.UserJwt {
 	userJwt, err := jwt.ParseJwt(j)
 	if err != nil {
-		resp.Resp(resp.ReFail, "jwt 解析失败", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "jwt 解析失败", Body: nil}).Response()
 	}
 
 	cacheKey := model2.KeyUtils.GetTokenKey(userJwt.Token)
 	r, err := model2.RedisClient.HGetAll(context.Background(), cacheKey).Result()
 	if err != nil {
-		resp.Resp(resp.ReFail, "查询失败", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "查询失败", Body: nil}).Response()
 	}
 	i, ok := r["uid"]
 	if !ok {
-		resp.Resp(resp.ReFail, "非法的 jwt", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "非法的 jwt", Body: nil}).Response()
 	}
 
 	uid, _ := conv.Conv[uint](i)
@@ -64,11 +64,11 @@ func (tl *TokenLogic) CheckJwt(j string) *jwt.UserJwt {
 	fmt.Println(userJwt)
 	fmt.Println(uid)
 	if uid != userJwt.Uid || r["token"] != userJwt.Token || r["type"] != string(userJwt.Type) {
-		resp.Resp(resp.ReFail, "非法的 jwt [1]", map[string]any{})
+		(&resp.JsonResp{Code: resp.ReFail, Message: "非法的 jwt [1]", Body: nil}).Response()
 	}
 
 	if userJwt.ExpireTime < time.Now().Unix() {
-		resp.Resp(resp.ReFail, "token 过期", nil)
+		(&resp.JsonResp{Code: resp.ReFail, Message: "token 过期", Body: nil}).Response()
 	}
 	return userJwt
 }
