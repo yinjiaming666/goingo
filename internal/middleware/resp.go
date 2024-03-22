@@ -30,7 +30,6 @@ func RespMiddleware() gin.HandlerFunc {
 						"msg":  e.(error).Error(),
 						"data": map[string]any{},
 					})
-					c.Error(e.(error))
 					c.Next()
 					return
 				default:
