@@ -131,7 +131,7 @@ func HandelResponse(r Response, c *gin.Context) {
 	case *JsonResp:
 		c.Abort()
 		c.JSON(r.GetHttpCode(), gin.H{
-			"Code": r.GetCode(),
+			"code": r.GetCode(),
 			"msg":  r.GetMsg(),
 			"data": r.GetBody(),
 		})

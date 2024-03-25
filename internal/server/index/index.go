@@ -7,10 +7,16 @@ import (
 	"strconv"
 )
 
+// GetCateList 分类列表
+func GetCateList(_ *gin.Context) {
+	list := (new(model.Cate)).GetCateList()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response()
+}
+
 // IndexArticleList 前台文章列表
 func IndexArticleList(c *gin.Context) {
 	title := c.Query("title")
-	cateId, _ := strconv.Atoi(c.PostForm("cate_id")) // 字符串转 int 必须要 strconv 这个包
+	cateId, _ := strconv.Atoi(c.Query("cate_id")) // 字符串转 int 必须要 strconv 这个包
 
 	search := model.ArticleSearch{Title: title, Status: 0, CateId: uint(cateId)}
 	article := new(model.ApiArticleList)

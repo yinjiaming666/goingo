@@ -15,8 +15,9 @@ func SetArticle(content *gin.Context) {
 	title := content.PostForm("title")
 	contents := content.PostForm("content")
 	status, _ := strconv.Atoi(content.PostForm("status"))
-	id, _ := strconv.Atoi(content.PostForm("id"))          // 字符串转 int 必须要 strconv 这个包
-	cateId, _ := strconv.Atoi(content.PostForm("cate_id")) // 字符串转 int 必须要 strconv 这个包
+	id, _ := strconv.Atoi(content.PostForm("id"))            // 字符串转 int 必须要 strconv 这个包
+	cateId, _ := strconv.Atoi(content.PostForm("cate_id"))   // 字符串转 int 必须要 strconv 这个包
+	articleType, _ := strconv.Atoi(content.PostForm("type")) // 字符串转 int 必须要 strconv 这个包
 
 	article := &model2.Article{
 		Id:      uint(id),
@@ -24,6 +25,7 @@ func SetArticle(content *gin.Context) {
 		Content: contents,
 		Status:  int8(status),
 		CateId:  cateId,
+		Type:    uint(articleType),
 	}
 
 	article = article.SetArticle()
@@ -97,7 +99,7 @@ func AdminLogin(content *gin.Context) {
 	data["token"] = j
 	data["token_info"] = userJwt
 	data["user"] = admin
-	(&resp.JsonResp{Code: resp.ReFail, Message: "登陆成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
 }
 
 // GetAdminInfo 获取管理员信息

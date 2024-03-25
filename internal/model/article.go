@@ -19,6 +19,7 @@ type Article struct {
 	CreateTimeStr   string                `json:"create_time_str" gorm:"-:all"`                                     // -:all 无读写迁移权限，该字段不在数据库中
 	DeleteTime      soft_delete.DeletedAt `json:"delete_time" gorm:"type:BIGINT UNSIGNED NOT NULL;default:0"`
 	Cate            Cate                  `json:"cate" gorm:"foreignKey:cate_id;references:id;-:migration"` // -:migration 表示无迁移权限
+	Type            uint                  `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
 
 	// belongsTo 文章分类(article 的 cate_id 指向 cate 的 id)  查询的时候使用 Joins 或者 Preload
 	// 通过 debug 推测 Joins 是 leftJoin ，Preload 应该是循环查询的
@@ -33,6 +34,7 @@ type ApiArticleList struct {
 	CreateTimeStr string `json:"create_time_str" gorm:"-:all"`
 	CateId        uint   `json:"cate_id" gorm:"default:1"` // 默认值为 1
 	Cate          Cate   `json:"cate" gorm:"foreignKey:cate_id;references:id"`
+	Type          uint   `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
 }
 
 type ArticleSearch struct {
@@ -46,7 +48,7 @@ func (article *Article) SetArticle() *Article {
 	if article.Id <= 0 {
 		db.Debug().Create(&article)
 	} else {
-		db.Debug().Select("title", "content", "status", "cate_id").Model(&article).Updates(&article)
+		db.Debug().Select("title", "content", "status", "cate_id", "type").Model(&article).Updates(&article)
 	}
 	return article
 }
