@@ -7,7 +7,7 @@ import (
 )
 
 type BaseModel interface {
-	IsBaseModel()
+	IsModel()
 	ToMap(child BaseModel) map[string]any
 	InitWithMap(a map[string]any, child BaseModel)
 	CreateTable(child BaseModel)
@@ -15,7 +15,7 @@ type BaseModel interface {
 
 type MysqlBaseModel struct{}
 
-func (m *MysqlBaseModel) IsBaseModel() {}
+func (m *MysqlBaseModel) IsModel() {}
 
 func (m *MysqlBaseModel) ToMap(child BaseModel) map[string]any {
 	return conv.Struct2Map(child, true)

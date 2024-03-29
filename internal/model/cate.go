@@ -14,6 +14,6 @@ type Cate struct {
 
 func (cate *Cate) GetCateList() []Cate {
 	list := make([]Cate, 0)
-	db.Find(&list)
+	Db().Find(&list)
 	return list
 }

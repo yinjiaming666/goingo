@@ -16,12 +16,12 @@ type Token struct {
 }
 
 func (t *Token) CheckToken(token string, jType jwt.JType) *Token {
-	db.Debug().First(t, "token = ? AND type = ?", token, string(jType))
+	Db().First(t, "token = ? AND type = ?", token, string(jType))
 	return t
 }
 
 func (t *Token) CreateToken() *Token {
-	db.Debug().Create(&t)
+	Db().Create(&t)
 	return t
 }
 
@@ -36,5 +36,5 @@ func (t *Token) DelToken() {
 	if t.Type != "" {
 		where["type"] = t.Type
 	}
-	db.Debug().Where(where).Delete(&t)
+	Db().Where(where).Delete(&t)
 }

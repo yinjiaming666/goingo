@@ -63,3 +63,7 @@ func InitDb(c *DbConf) {
 	sqlDB.SetConnMaxLifetime(10 * time.Second)
 
 }
+
+func Db() *gorm.DB {
+	return db.Debug()
+}

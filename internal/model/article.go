@@ -26,15 +26,16 @@ type Article struct {
 }
 
 type ApiArticleList struct {
-	Id            uint   `json:"id" gorm:"primaryKey"`
-	Title         string `json:"title"`
-	Status        int8   `json:"status"`
-	ViewNum       uint   `json:"view_num"`
-	CreateTime    int64  `json:"create_time" gorm:"autoCreateTime"`
-	CreateTimeStr string `json:"create_time_str" gorm:"-:all"`
-	CateId        uint   `json:"cate_id" gorm:"default:1"` // 默认值为 1
-	Cate          Cate   `json:"cate" gorm:"foreignKey:cate_id;references:id"`
-	Type          uint   `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
+	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
+	Id              uint           `json:"id" gorm:"primaryKey"`
+	Title           string         `json:"title"`
+	Status          int8           `json:"status"`
+	ViewNum         uint           `json:"view_num"`
+	CreateTime      int64          `json:"create_time" gorm:"autoCreateTime"`
+	CreateTimeStr   string         `json:"create_time_str" gorm:"-:all"`
+	CateId          uint           `json:"cate_id" gorm:"default:1"` // 默认值为 1
+	Cate            Cate           `json:"cate" gorm:"foreignKey:cate_id;references:id"`
+	Type            uint           `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
 }
 
 type ArticleSearch struct {
@@ -46,15 +47,15 @@ type ArticleSearch struct {
 
 func (article *Article) SetArticle() *Article {
 	if article.Id <= 0 {
-		db.Debug().Create(&article)
+		Db().Debug().Create(&article)
 	} else {
-		db.Debug().Select("title", "content", "status", "cate_id", "type").Model(&article).Updates(&article)
+		Db().Debug().Select("title", "content", "status", "cate_id", "type").Model(&article).Updates(&article)
 	}
 	return article
 }
 
 func (article *Article) DelArticle() *Article {
-	db.Delete(&article, article.Id)
+	Db().Delete(&article, article.Id)
 	return article
 }
 
@@ -72,7 +73,7 @@ func (article *ApiArticleList) GetArticleList(search *ArticleSearch) []ApiArticl
 		where["cate_id"] = search.CateId
 	}
 
-	conn := db.Debug().Where(where)
+	conn := Db().Where(where)
 
 	if search.Title != "" {
 		conn.Where("b_article.title LIKE ?", "%"+search.Title+"%") // 链式操作
@@ -84,7 +85,7 @@ func (article *ApiArticleList) GetArticleList(search *ArticleSearch) []ApiArticl
 }
 
 func (article *Article) GetArticleDetail() *Article {
-	db.Where(article).Debug().First(article)
+	Db().Where(article).Debug().First(article)
 	return article
 }
 

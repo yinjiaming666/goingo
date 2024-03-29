@@ -10,11 +10,11 @@ type Admin struct {
 }
 
 func (admin *Admin) GetAdmin() *Admin {
-	db.Where(admin).Debug().First(admin)
+	Db().Where(admin).Debug().First(admin)
 	return admin
 }
 
 func (admin *Admin) UpdateAdmin(data map[string]interface{}) *Admin {
-	db.Model(&admin).Debug().Updates(data)
+	Db().Model(&admin).Updates(data)
 	return admin
 }
