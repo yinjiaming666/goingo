@@ -24,7 +24,7 @@ func InitLog() {
 	date := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 
-	initDir := func(date string, yesterday string) {
+	initDir := func(date string, yesterday string, isFirst bool) {
 		today = date
 		_ = os.Mkdir("log/"+date, os.ModePerm)
 
@@ -56,41 +56,39 @@ func InitLog() {
 			return
 		}
 
-		_ = os.Mkdir("log/"+yesterday, os.ModePerm)
-		fromAccessFile, _ := os.OpenFile(AccessLogFilePath, os.O_RDWR, os.ModePerm)
-		toAccessFile, _ := os.OpenFile("log/"+yesterday+"/access.log", os.O_RDWR|os.O_CREATE, os.ModePerm)
-		defer func() {
-			err := fromAccessFile.Truncate(0)
-			if err != nil {
-				fmt.Println(err)
-				fmt.Println("文件清空失败")
-			}
-			_, err = fromAccessFile.Seek(0, 0)
-			if err != nil {
-				fmt.Println(err)
-				fmt.Println("文件重置偏移失败")
-			}
-			_ = fromAccessFile.Close()
-		}()
-
-		defer func() {
-			_ = toAccessFile.Close()
-		}()
-		_, _ = io.Copy(toAccessFile, fromAccessFile)
+		if !isFirst {
+			_ = os.Mkdir("log/"+yesterday, os.ModePerm)
+			fromAccessFile, _ := os.OpenFile(AccessLogFilePath, os.O_RDWR, os.ModePerm)
+			toAccessFile, _ := os.OpenFile("log/"+yesterday+"/access.log", os.O_RDWR|os.O_CREATE, os.ModePerm)
+			defer func() {
+				err := fromAccessFile.Truncate(0)
+				if err != nil {
+					fmt.Println(err)
+					fmt.Println("文件清空失败")
+				}
+				_, err = fromAccessFile.Seek(0, 0)
+				if err != nil {
+					fmt.Println(err)
+					fmt.Println("文件重置偏移失败")
+				}
+				_ = fromAccessFile.Close()
+				_ = toAccessFile.Close()
+			}()
+			_, _ = io.Copy(toAccessFile, fromAccessFile)
+		}
 	}
 
-	initDir(date, yesterday)
+	initDir(date, yesterday, true)
 
 	go func() {
 		for {
 			date := time.Now().Format("2006-01-02")
 			yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-
 			if date == today {
 				time.Sleep(time.Second)
 				continue
 			} else {
-				initDir(date, yesterday)
+				initDir(date, yesterday, false)
 			}
 		}
 	}()
