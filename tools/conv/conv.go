@@ -1184,3 +1184,11 @@ func InSlice[T builtinT](list []T, item T) (int, T) {
 	}
 	return -1, item
 }
+
+func Timestamp2Str(timestamp int64) string {
+	if timestamp == 0 {
+		timestamp = time.Now().Unix()
+	}
+	t := time.Unix(timestamp, 0)
+	return t.Format("2006-01-02 15:04:05")
+}
