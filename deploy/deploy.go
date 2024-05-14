@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 	"github.com/pkg/sftp"
-	"github.com/spf13/viper"
+	"go_udp/utils"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
@@ -16,34 +16,26 @@ import (
 )
 
 func main() {
-	var config = viper.New()
-	config.AddConfigPath("../config/") // 文件所在目录
-	config.SetConfigName("server")     // 文件名
-	config.SetConfigType("ini")        // 文件类型
-	if err := config.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Println("config not found")
-			fmt.Println(err.Error())
-			//panic(err.Error())
-		} else {
-			fmt.Println("config read error")
-			fmt.Println(err.Error())
-			//panic(err.Error())
-		}
-	}
+	proName := utils.GetConfig("server", "server", "pro_name")
+	userName := utils.GetConfig("server", "server", "username")
+	password := utils.GetConfig("server", "server", "password")
+	ip := utils.GetConfig("server", "server", "ip")
 
-	proName := config.GetString("server.pro_name")
-	userName := config.GetString("server.username")
-	password := config.GetString("server.password")
-	ip := config.GetString("server.ip")
+	cgo := utils.GetConfig("build", "build", "CGO_ENABLED")
+	goos := utils.GetConfig("build", "build", "GOOS")
+	goarch := utils.GetConfig("build", "build", "GOARCH")
 
-	cmd := exec.Command("/bin/bash", "deploy.sh", proName)
+	cmd := exec.Command("/bin/bash", "deploy.sh", proName, goos, goarch, cgo)
 	res, err := cmd.Output()
 	if err != nil {
 		//fmt.Printf("  out:\n%s\n", string(out))
 		log.Fatalf("cmd.Run() failed with %s\n", err.Error())
 	}
 	fmt.Printf(string(res))
+
+	if ip == "" || userName == "" || password == "" {
+		return
+	}
 
 	// 压缩包上传服务器
 	localPath := proName + ".tar.gz"
@@ -64,6 +56,7 @@ func main() {
 	fmt.Println("elapsed time : ", elapsed)
 
 	// 执行shell
+	// kill 进程 kill $(ps -ef | grep go_udp)
 	client, err := sshConnect(userName, password, ip, 22)
 	if err != nil {
 		log.Fatal(err)
