@@ -9,7 +9,7 @@ import (
 	global "goingo/internal"
 	"goingo/internal/model"
 	"goingo/internal/router"
-	"goingo/tools"
+	confg "goingo/tools/config"
 	"goingo/tools/logger"
 	"goingo/tools/queue"
 	"net"
@@ -25,7 +25,13 @@ func main() {
 	flag.StringVar(&global.InitDb, "initDb", "false", "-initDb=true, -initDb=false")
 	flag.Parse()
 	time.Local, _ = time.LoadLocation("Asia/Shanghai")
-	global.ServerName = tools.GetConfig(global.Mode, "server", "name")
+
+	conf := (&confg.Config{
+		Path:     "./config",
+		FileName: global.Mode, // dev or prod
+	}).Init()
+
+	global.ServerName = confg.Get[string](conf, "server", "name")
 	pid := os.Getpid()
 	var buf = make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(pid))
@@ -54,18 +60,19 @@ func main() {
 		}
 	}
 
-	logger.InitLog()
+	logger.Init()
+
 	model.InitDb(&model.DbConf{
-		UserName: tools.GetConfig(global.Mode, "mysql", "username"),
-		Password: tools.GetConfig(global.Mode, "mysql", "password"),
-		Ip:       tools.GetConfig(global.Mode, "mysql", "ip"),
-		Port:     tools.GetConfig(global.Mode, "mysql", "port"),
-		DbName:   tools.GetConfig(global.Mode, "mysql", "db_name"),
+		UserName: confg.Get[string](conf, "mysql", "username"),
+		Password: confg.Get[string](conf, "mysql", "password"),
+		Ip:       confg.Get[string](conf, "mysql", "ip"),
+		Port:     confg.Get[string](conf, "mysql", "port"),
+		DbName:   confg.Get[string](conf, "mysql", "db_name"),
 	})
 
 	model.InitRedis(&model.RedisConf{
-		Ip:   tools.GetConfig(global.Mode, "redis", "ip"),
-		Port: tools.GetConfig(global.Mode, "redis", "port"),
+		Ip:   confg.Get[string](conf, "redis", "ip"),
+		Port: confg.Get[string](conf, "redis", "port"),
 	})
 
 	if global.InitDb == "true" {
@@ -80,7 +87,7 @@ func main() {
 	}
 
 	queue.Init("goingo-queue", redis.NewClient(&redis.Options{
-		Addr: tools.GetConfig(global.Mode, "queue", "ip") + ":" + tools.GetConfig(global.Mode, "queue", "port"),
+		Addr: confg.Get[string](conf, "queue", "ip") + ":" + confg.Get[string](conf, "queue", "port"),
 	}))
 
 	// 消息队列
@@ -105,7 +112,7 @@ func main() {
 
 	initQueueFunc()
 
-	port := tools.GetConfig(global.Mode, "server", "port")
+	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)
 }
 

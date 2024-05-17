@@ -5,9 +5,9 @@ package main
 import (
 	"fmt"
 	"github.com/pkg/sftp"
-	"go_udp/utils"
+	confg "goingo/tools/config"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -16,14 +16,24 @@ import (
 )
 
 func main() {
-	proName := utils.GetConfig("server", "server", "pro_name")
-	userName := utils.GetConfig("server", "server", "username")
-	password := utils.GetConfig("server", "server", "password")
-	ip := utils.GetConfig("server", "server", "ip")
+	serverConf := (&confg.Config{
+		Path:     "../config",
+		FileName: "server",
+	}).Init()
 
-	cgo := utils.GetConfig("build", "build", "CGO_ENABLED")
-	goos := utils.GetConfig("build", "build", "GOOS")
-	goarch := utils.GetConfig("build", "build", "GOARCH")
+	buildConf := (&confg.Config{
+		Path:     "../config",
+		FileName: "build",
+	}).Init()
+
+	proName := confg.Get[string](serverConf, "server", "pro_name")
+	userName := confg.Get[string](serverConf, "server", "username")
+	password := confg.Get[string](serverConf, "server", "password")
+	ip := confg.Get[string](serverConf, "server", "ip")
+
+	cgo := confg.Get[string](buildConf, "build", "CGO_ENABLED")
+	goos := confg.Get[string](buildConf, "build", "GOOS")
+	goarch := confg.Get[string](buildConf, "build", "GOARCH")
 
 	cmd := exec.Command("/bin/bash", "deploy.sh", proName, goos, goarch, cgo)
 	res, err := cmd.Output()
@@ -62,7 +72,13 @@ func main() {
 		log.Fatal(err)
 	}
 	session, _ := client.NewSession()
-	defer session.Close()
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}()
 
 	// 解压缩文件 cd /data/ && rm -f /data/blog/blog && tar -zxvf blog.tar.gz && rm -rf blog.tar.gz && cd blog && touch blog.log
 	session, _ = client.NewSession()
@@ -150,7 +166,7 @@ func uploadFile(sftpClient *sftp.Client, localFilePath string, remotePath string
 			panic(err.Error())
 		}
 	}(dstFile)
-	ff, err := ioutil.ReadAll(srcFile)
+	ff, err := io.ReadAll(srcFile)
 	if err != nil {
 		fmt.Println("ReadAll error : ", localFilePath)
 		log.Fatal(err)

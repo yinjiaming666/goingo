@@ -16,7 +16,7 @@ var errFileHandel *os.File = nil
 var systemFileHandel *os.File = nil
 var AccessLogFilePath = "log/access.log"
 
-func InitLog() {
+func Init() {
 	_ = os.Mkdir("log", os.ModePerm)
 	systemFileHandel, _ = os.OpenFile("log/system.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	var err error
