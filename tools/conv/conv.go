@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+type BuiltinT interface {
+	~string | ~int | ~uint | ~float32 | ~float64 | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~int8 | ~int16 | ~int32 | ~int64 | ~bool | ~complex64 | ~complex128
+}
+
 // Conv 参考 https://github.com/dablelv/cyan/tree/master/conv
 func Conv[T any](a any) (T, error) {
 	var t T
@@ -1171,10 +1175,6 @@ func Map2AnyMap[T any](before map[string]T) map[string]any {
 	return m
 }
 
-type BuiltinT interface {
-	string | int | uint | float32 | float64 | uint8 | uint16 | uint32 | uint64 | int8 | int16 | int32 | int64 | bool | complex64 | complex128
-}
-
 // InSlice 判断切片中是否存在某元素
 func InSlice[T BuiltinT](list []T, item T) (int, T) {
 	for k, v := range list {
@@ -1190,5 +1190,5 @@ func Timestamp2Str(timestamp int64) string {
 		timestamp = time.Now().Unix()
 	}
 	t := time.Unix(timestamp, 0)
-	return t.Format("2006-01-02 15:04:05")
+	return t.Format(time.DateTime)
 }

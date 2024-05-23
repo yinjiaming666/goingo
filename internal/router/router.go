@@ -7,6 +7,7 @@ import (
 	"goingo/tools/logger"
 	"io"
 	"os"
+	"time"
 )
 
 type RouteGateway interface {
@@ -28,7 +29,7 @@ func InitRouter(port string) {
 		Formatter: func(params gin.LogFormatterParams) string {
 			return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\" POSTFORM - [%s] \n",
 				params.ClientIP,
-				params.TimeStamp.Format("2006-01-02 15:04:05"),
+				params.TimeStamp.Format(time.DateTime),
 				params.Method,
 				params.Path,
 				params.Request.Proto,

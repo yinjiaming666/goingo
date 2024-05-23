@@ -1,9 +1,9 @@
 package model
 
 import (
+	"goingo/tools/conv"
 	"gorm.io/gorm"
 	"gorm.io/plugin/soft_delete"
-	"time"
 )
 
 type Article struct {
@@ -92,7 +92,7 @@ func (article *Article) GetArticleDetail() *Article {
 // AfterFind 查询钩子，在查询后会执行
 func (article *Article) AfterFind(*gorm.DB) (err error) {
 	if article.CreateTime != 0 {
-		article.CreateTimeStr = time.Unix(article.CreateTime, 0).Format("2006-01-02 15:04:05")
+		article.CreateTimeStr = conv.Timestamp2Str(article.CreateTime)
 	}
 	return
 }
@@ -100,7 +100,7 @@ func (article *Article) AfterFind(*gorm.DB) (err error) {
 // AfterFind 查询钩子，在查询后会执行
 func (article *ApiArticleList) AfterFind(*gorm.DB) (err error) {
 	if article.CreateTime != 0 {
-		article.CreateTimeStr = time.Unix(article.CreateTime, 0).Format("2006-01-02 15:04:05")
+		article.CreateTimeStr = conv.Timestamp2Str(article.CreateTime)
 	}
 	return
 }
