@@ -139,7 +139,7 @@ func HandelResponse(r Response, c *gin.Context) {
 		break
 	case *XmlResp:
 		c.Abort()
-		c.JSON(r.GetHttpCode(), r.GetBody())
+		c.XML(r.GetHttpCode(), r.GetBody())
 		c.Next()
 		break
 	}
