@@ -1,17 +1,17 @@
 package main
 
 import (
+	global "app/internal"
+	"app/internal/model"
+	"app/internal/router"
+	confg "app/tools/config"
+	"app/tools/logger"
+	"app/tools/queue"
 	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	global "goingo/internal"
-	"goingo/internal/model"
-	"goingo/internal/router"
-	confg "goingo/tools/config"
-	"goingo/tools/logger"
-	"goingo/tools/queue"
 	"net"
 	"os"
 	"strconv"

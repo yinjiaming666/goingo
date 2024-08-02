@@ -1,11 +1,11 @@
 package model
 
 import (
+	global "app/internal"
+	"app/tools/key_utils"
+	"app/tools/logger"
 	"context"
 	"github.com/redis/go-redis/v9"
-	global "goingo/internal"
-	"goingo/tools/key_utils"
-	"goingo/tools/logger"
 )
 
 // RedisClient 定义一个全局变量

@@ -1,12 +1,12 @@
 package logic
 
 import (
+	model2 "app/internal/model"
+	"app/tools/conv"
+	"app/tools/jwt"
+	"app/tools/resp"
 	"context"
 	"fmt"
-	model2 "goingo/internal/model"
-	"goingo/tools/conv"
-	"goingo/tools/jwt"
-	"goingo/tools/resp"
 	"time"
 )
 

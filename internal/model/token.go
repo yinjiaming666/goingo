@@ -1,6 +1,6 @@
 package model
 
-import "goingo/tools/jwt"
+import "app/tools/jwt"
 
 type Token struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中

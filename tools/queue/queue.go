@@ -1,11 +1,11 @@
 package queue
 
 import (
+	"app/tools/logger"
+	"app/tools/random"
 	"context"
 	"errors"
 	"github.com/redis/go-redis/v9"
-	"goingo/tools/logger"
-	"goingo/tools/random"
 	"strconv"
 	"time"
 )

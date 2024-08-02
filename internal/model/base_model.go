@@ -1,8 +1,8 @@
 package model
 
 import (
-	"goingo/tools/conv"
-	"goingo/tools/logger"
+	"app/tools/conv"
+	"app/tools/logger"
 	"reflect"
 )
 

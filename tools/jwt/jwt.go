@@ -1,9 +1,9 @@
 package jwt
 
 import (
+	sysLog "app/tools/logger"
+	"app/tools/random"
 	"github.com/golang-jwt/jwt"
-	sysLog "goingo/tools/logger"
-	"goingo/tools/random"
 	"time"
 )
 

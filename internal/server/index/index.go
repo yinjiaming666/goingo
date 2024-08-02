@@ -1,9 +1,9 @@
 package index_api
 
 import (
+	"app/internal/model"
+	"app/tools/resp"
 	"github.com/gin-gonic/gin"
-	"goingo/internal/model"
-	"goingo/tools/resp"
 	"strconv"
 )
 

@@ -1,9 +1,9 @@
 package router
 
 import (
+	"app/internal/middleware"
+	"app/internal/server/index"
 	"github.com/gin-gonic/gin"
-	"goingo/internal/middleware"
-	"goingo/internal/server/index"
 )
 
 type IndexRoute struct {

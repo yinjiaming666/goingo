@@ -1,8 +1,8 @@
 package model
 
 import (
+	sysLog "app/tools/logger"
 	"fmt"
-	sysLog "goingo/tools/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

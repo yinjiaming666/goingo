@@ -1,11 +1,11 @@
 package middleware
 
 import (
+	logic2 "app/internal/logic"
+	"app/internal/model"
+	"app/tools/jwt"
+	"app/tools/resp"
 	"github.com/gin-gonic/gin"
-	logic2 "goingo/internal/logic"
-	"goingo/internal/model"
-	"goingo/tools/jwt"
-	"goingo/tools/resp"
 )
 
 func CheckJwt() func(c *gin.Context) {

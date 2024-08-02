@@ -1,9 +1,9 @@
 package router
 
 import (
+	"app/internal/middleware"
+	adminApi "app/internal/server/admin"
 	"github.com/gin-gonic/gin"
-	"goingo/internal/middleware"
-	adminApi "goingo/internal/server/admin"
 )
 
 type AdminRoute struct {

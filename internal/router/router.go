@@ -1,10 +1,10 @@
 package router
 
 import (
+	middleware2 "app/internal/middleware"
+	"app/tools/logger"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	middleware2 "goingo/internal/middleware"
-	"goingo/tools/logger"
 	"io"
 	"os"
 	"time"

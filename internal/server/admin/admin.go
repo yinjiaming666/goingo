@@ -1,12 +1,12 @@
 package admin_api
 
 import (
+	"app/internal/logic"
+	model2 "app/internal/model"
+	"app/tools"
+	"app/tools/jwt"
+	"app/tools/resp"
 	"github.com/gin-gonic/gin"
-	"goingo/internal/logic"
-	model2 "goingo/internal/model"
-	"goingo/tools"
-	"goingo/tools/jwt"
-	"goingo/tools/resp"
 	"strconv"
 )
 

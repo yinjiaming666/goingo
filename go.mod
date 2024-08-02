@@ -1,4 +1,4 @@
-module goingo
+module app
 
 go 1.18
 

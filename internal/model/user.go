@@ -1,8 +1,8 @@
 package model
 
 import (
-	"goingo/tools"
-	"goingo/tools/resp"
+	"app/tools"
+	"app/tools/resp"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type User struct {
 }
 
 func (user *User) GetUserInfo() *User {
-	Db().Where(&user).Debug().First(&user)
+	Db().Where(&user).First(&user)
 	return user
 }
 

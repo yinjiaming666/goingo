@@ -3,9 +3,9 @@
 package main
 
 import (
+	confg "app/tools/config"
 	"fmt"
 	"github.com/pkg/sftp"
-	confg "goingo/tools/config"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"log"

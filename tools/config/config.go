@@ -1,10 +1,10 @@
 package confg
 
 import (
+	"app/tools/conv"
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
-	"goingo/tools/conv"
 )
 
 type Config struct {

@@ -1,13 +1,13 @@
 package model
 
 import (
-	"goingo/tools/conv"
+	"app/tools/conv"
 	"gorm.io/gorm"
 	"gorm.io/plugin/soft_delete"
 )
 
 type Article struct {
-	*MysqlBaseModel `gorm:"-:all"`        // -:all 无读写迁移权限，该字段不在数据库中
+	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
 	Id              uint                  `json:"id" gorm:"primaryKey;type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
 	Title           string                `json:"title" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
 	Content         string                `json:"content" gorm:"type:TEXT;"`
@@ -27,15 +27,15 @@ type Article struct {
 
 type ApiArticleList struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
-	Id              uint           `json:"id" gorm:"primaryKey"`
-	Title           string         `json:"title"`
-	Status          int8           `json:"status"`
-	ViewNum         uint           `json:"view_num"`
-	CreateTime      int64          `json:"create_time" gorm:"autoCreateTime"`
-	CreateTimeStr   string         `json:"create_time_str" gorm:"-:all"`
-	CateId          uint           `json:"cate_id" gorm:"default:1"` // 默认值为 1
-	Cate            Cate           `json:"cate" gorm:"foreignKey:cate_id;references:id"`
-	Type            uint           `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
+	Id              uint   `json:"id" gorm:"primaryKey"`
+	Title           string `json:"title"`
+	Status          int8   `json:"status"`
+	ViewNum         uint   `json:"view_num"`
+	CreateTime      int64  `json:"create_time" gorm:"autoCreateTime"`
+	CreateTimeStr   string `json:"create_time_str" gorm:"-:all"`
+	CateId          uint   `json:"cate_id" gorm:"default:1"` // 默认值为 1
+	Cate            Cate   `json:"cate" gorm:"foreignKey:cate_id;references:id"`
+	Type            uint   `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
 }
 
 type ArticleSearch struct {
@@ -47,7 +47,7 @@ type ArticleSearch struct {
 
 func (article *Article) SetArticle() *Article {
 	if article.Id <= 0 {
-		Db().Debug().Create(&article)
+		Db().Create(&article)
 	} else {
 		Db().Debug().Select("title", "content", "status", "cate_id", "type").Model(&article).Updates(&article)
 	}

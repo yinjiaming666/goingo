@@ -1,12 +1,12 @@
 package index_api
 
 import (
+	logic2 "app/internal/logic"
+	model2 "app/internal/model"
+	"app/tools"
+	"app/tools/jwt"
+	"app/tools/resp"
 	"github.com/gin-gonic/gin"
-	logic2 "goingo/internal/logic"
-	model2 "goingo/internal/model"
-	"goingo/tools"
-	"goingo/tools/jwt"
-	"goingo/tools/resp"
 )
 
 // RegisterUser 注册用户

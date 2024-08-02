@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"app/tools/logger"
+	"app/tools/resp"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"goingo/tools/logger"
-	"goingo/tools/resp"
 )
 
 func RespMiddleware() gin.HandlerFunc {
