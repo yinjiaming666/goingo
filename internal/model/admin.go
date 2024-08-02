@@ -10,7 +10,7 @@ type Admin struct {
 }
 
 func (admin *Admin) GetAdmin() *Admin {
-	Db().Where(admin).Debug().First(admin)
+	Db().Where(admin).First(admin)
 	return admin
 }
 
