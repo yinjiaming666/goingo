@@ -38,12 +38,12 @@ func Login(content *gin.Context) {
 	nickname := content.PostForm("nickname")
 	password := content.PostForm("password")
 
-	user := model2.User{
-		Nickname: nickname,
-		Password: tools.Md5(password, model2.UserPwdSalt),
+	s := map[string]any{
+		"nickname": nickname,
+		"password": tools.Md5(password, model2.UserPwdSalt),
 	}
 
-	userInfo := user.GetUserInfo()
+	userInfo := logic2.UserLogic{}.SearchUser(s)
 	if userInfo.Id <= 0 {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response()
 		content.Abort()
@@ -52,7 +52,7 @@ func Login(content *gin.Context) {
 	data := make(map[string]interface{})
 
 	tokenLogic := logic2.TokenLogic{}
-	j, userJwt := tokenLogic.GenerateJwt(user.Id, jwt.IndexJwtType, 0)
+	j, userJwt := tokenLogic.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt
