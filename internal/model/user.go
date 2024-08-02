@@ -26,14 +26,14 @@ type User struct {
 }
 
 func (user *User) GetUserInfo() {
-	Db().Where(&user).First(&user)
+	Db().Where(user).First(user)
 }
 
 func (user *User) DoRegister() uint {
 	user.Password = tools.Md5(user.Password, UserPwdSalt)
 	user.CreateTime = int64(uint(time.Now().Unix()))
 	user.SaveCache()
-	tx := Db().Create(&user)
+	tx := Db().Create(user)
 	if tx.Error != nil {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "错误", Body: map[string]any{
 			"error": tx.Error.Error(),
@@ -48,7 +48,7 @@ func (user *User) SetUser() {
 	}
 	user.SaveCache()
 	go func() {
-		Db().Select("nickname", "password", "age", "sex", "token", "status").Model(&user).Updates(&user)
+		Db().Select("nickname", "password", "age", "sex", "token", "status").Model(user).Updates(user)
 	}()
 }
 
