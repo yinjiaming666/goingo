@@ -1185,6 +1185,18 @@ func InSlice[T BuiltinT](list []T, item T) (int, T) {
 	return -1, item
 }
 
+// RemoveSlice 从切片中删除指定元素
+func RemoveSlice[T BuiltinT](a []T, elem T) []T {
+	j := 0
+	for _, v := range a {
+		if v != elem {
+			a[j] = v
+			j++
+		}
+	}
+	return a[:j]
+}
+
 func Timestamp2Str(timestamp int64) string {
 	if timestamp == 0 {
 		timestamp = time.Now().Unix()
