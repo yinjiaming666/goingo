@@ -11,7 +11,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"net"
 	"os"
 	"strconv"
@@ -83,34 +82,36 @@ func main() {
 		m.CreateTable(model.Article{})
 		m.CreateTable(model.Admin{})
 		m.CreateTable(model.Cate{})
+		m.CreateTable(model.Menu{})
+		m.CreateTable(model.Role{})
 		logger.Info("end init table ====================")
 	}
 
-	queue.Init("goingo-queue", redis.NewClient(&redis.Options{
-		Addr: confg.Get[string](conf, "queue", "ip") + ":" + confg.Get[string](conf, "queue", "port"),
-	}))
-
-	// 消息队列
-	stream := &queue.NormalStream{}
-	stream.SetName("default")
-	err = stream.Create()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	go stream.Loop()
-
-	// 延时队列
-	delayStream := &queue.DelayStream{}
-	delayStream.SetName("default")
-	err = delayStream.Create()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	go delayStream.Loop()
-
-	initQueueFunc()
+	//queue.Init("goingo-queue", redis.NewClient(&redis.Options{
+	//	Addr: confg.Get[string](conf, "queue", "ip") + ":" + confg.Get[string](conf, "queue", "port"),
+	//}))
+	//
+	//// 消息队列
+	//stream := &queue.NormalStream{}
+	//stream.SetName("default")
+	//err = stream.Create()
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
+	//go stream.Loop()
+	//
+	//// 延时队列
+	//delayStream := &queue.DelayStream{}
+	//delayStream.SetName("default")
+	//err = delayStream.Create()
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
+	//go delayStream.Loop()
+	//
+	//initQueueFunc()
 
 	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)

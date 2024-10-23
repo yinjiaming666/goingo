@@ -7,6 +7,7 @@ type Admin struct {
 	Password        string         `json:"password" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
 	Avatar          string         `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
 	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
+	RoleIds         string         `json:"role_ids" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
 }
 
 func (admin *Admin) GetAdmin() *Admin {

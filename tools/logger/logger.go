@@ -129,7 +129,7 @@ func System(msg string, append ...any) {
 func Error(msg string, appends ...any) {
 	t := Trace()
 	fmt.Println(t)
-	fmt.Print(msg, appends)
+	fmt.Println(msg, appends)
 	if errFileHandel != nil {
 		logHandel := slog.New(slog.NewTextHandler(errFileHandel, nil))
 		slog.SetDefault(logHandel)

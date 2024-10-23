@@ -4,6 +4,7 @@ import (
 	"app/internal/logic"
 	model2 "app/internal/model"
 	"app/tools"
+	"app/tools/conv"
 	"app/tools/jwt"
 	"app/tools/resp"
 	"github.com/gin-gonic/gin"
@@ -105,10 +106,20 @@ func AdminLogin(content *gin.Context) {
 // GetAdminInfo 获取管理员信息
 func GetAdminInfo(c *gin.Context) {
 	admin, _ := c.Get(string(jwt.AdminJwtType))
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin}).Response()
+}
 
-	data := make(map[string]interface{})
-	data["user"] = admin
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
+func GetMenu(c *gin.Context) {
+	t, ok := c.GetQuery("type")
+	var tt int
+	if !ok {
+		tt = -1
+	} else {
+		tt, _ = conv.Conv[int](t)
+	}
+	menu := model2.Role{}
+	menus := menu.GetMenusByRoleIds("*", tt)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response()
 }
 
 // GetCateList 获取分类列表

@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/pkg/sftp v1.13.1
-	github.com/redis/go-redis/v9 v9.4.0
+	github.com/redis/go-redis/v9 v9.7.0
 	github.com/spf13/viper v1.17.0
 	golang.org/x/crypto v0.13.0
 	gorm.io/driver/mysql v1.5.2
