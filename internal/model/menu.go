@@ -44,6 +44,15 @@ func (m *Menu) FormatTree(list []*MenusFormat) []*MenusFormat {
 	return tempList
 }
 
+func (m *Menu) SetMenu() *Menu {
+	if m.Id <= 0 {
+		Db().Create(&m)
+	} else {
+		Db().Model(&m).Updates(&m)
+	}
+	return m
+}
+
 type MenuMeta struct {
 	Title    string `json:"title,omitempty"`
 	AffixTab bool   `json:"affix_tab,omitempty"` // 是否固定标签页
@@ -51,13 +60,13 @@ type MenuMeta struct {
 	Icon     string `json:"icon,omitempty"`
 }
 
-func (c *MenuMeta) Value() (driver.Value, error) {
+func (c MenuMeta) Value() (driver.Value, error) {
 	b, err := json.Marshal(c)
 	return string(b), err
 }
 
-func (c *MenuMeta) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), c)
+func (c MenuMeta) Scan(input interface{}) error {
+	return json.Unmarshal(input.([]byte), &c)
 }
 
 func (m *Menu) GetMenus() []*MenusFormat {

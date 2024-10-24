@@ -7,6 +7,7 @@ import (
 	"app/tools/conv"
 	"app/tools/jwt"
 	"app/tools/resp"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 )
@@ -109,6 +110,7 @@ func GetAdminInfo(c *gin.Context) {
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin}).Response()
 }
 
+// GetMenu 获取路由
 func GetMenu(c *gin.Context) {
 	t, ok := c.GetQuery("type")
 	var tt int
@@ -120,6 +122,47 @@ func GetMenu(c *gin.Context) {
 	menu := model2.Role{}
 	menus := menu.GetMenusByRoleIds("*", tt)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response()
+}
+
+// SetMenu 设置路由
+func SetMenu(c *gin.Context) {
+	id, err := conv.Conv[uint](c.PostForm("id"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	pid, err := conv.Conv[uint](c.PostForm("pid"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	t, err := conv.Conv[uint](c.PostForm("type"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	name := c.PostForm("name")
+	path := c.PostForm("path")
+	component := c.PostForm("component")
+	meta := c.PostFormMap("meta")
+
+	menuMeta := model2.MenuMeta{}
+	if v, ok := meta["title"]; ok {
+		menuMeta.Title = v
+	}
+	if v, ok := meta["icon"]; ok {
+		menuMeta.Icon = v
+	}
+	menu := &model2.Menu{
+		Id:        id,
+		Component: component,
+		Meta:      menuMeta,
+		Name:      name,
+		Path:      path,
+		Pid:       pid,
+		Type:      t,
+	}
+
+	menu = menu.SetMenu()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: menu}).Response()
 }
 
 // GetCateList 获取分类列表
