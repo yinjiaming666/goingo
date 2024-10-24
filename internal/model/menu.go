@@ -56,6 +56,10 @@ func (m *Menu) SetMenu() *Menu {
 	return m
 }
 
+func (m *Menu) SearchByPath(path string) {
+	Db().Model(m).Where("path = ?", path).Where("type = 0").First(m)
+}
+
 func (m *Menu) DelMenu(ids []int) {
 	Db().Delete(&m, ids)
 }
