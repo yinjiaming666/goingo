@@ -21,4 +21,5 @@ func (r *AdminRoute) initRoute() {
 	r.group.POST("setAdminInfo", middleware.CheckJwt(), adminApi.SetAdminInfo)
 	r.group.GET("getMenu", adminApi.GetMenu)
 	r.group.POST("setMenu", adminApi.SetMenu)
+	r.group.POST("delMenu", adminApi.DelMenu)
 }

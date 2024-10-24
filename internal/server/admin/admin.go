@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
+	"strings"
 )
 
 // SetArticle 添加修改文章
@@ -163,6 +164,22 @@ func SetMenu(c *gin.Context) {
 
 	menu = menu.SetMenu()
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: menu}).Response()
+}
+
+// DelMenu 删除路由
+func DelMenu(c *gin.Context) {
+	ids := c.PostForm("ids")
+	l := strings.Split(ids, ",")
+	var temp []int
+	for _, v := range l {
+		i, err := conv.Conv[int](v)
+		if err == nil {
+			temp = append(temp, i)
+		}
+	}
+	article := &model2.Menu{}
+	article.DelMenu(temp)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
 }
 
 // GetCateList 获取分类列表

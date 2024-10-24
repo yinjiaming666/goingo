@@ -3,6 +3,7 @@ package model
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"sort"
 )
 
 // Menu 菜单表
@@ -41,6 +42,8 @@ func (m *Menu) FormatTree(list []*MenusFormat) []*MenusFormat {
 			tempList = append(tempList, tempMap[v.Id])
 		}
 	}
+
+	sort.Slice(tempList, func(i, j int) bool { return tempList[i].Id < tempList[j].Id })
 	return tempList
 }
 
@@ -51,6 +54,10 @@ func (m *Menu) SetMenu() *Menu {
 		Db().Model(&m).Updates(&m)
 	}
 	return m
+}
+
+func (m *Menu) DelMenu(ids []int) {
+	Db().Delete(&m, ids)
 }
 
 type MenuMeta struct {
@@ -65,8 +72,8 @@ func (c MenuMeta) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-func (c MenuMeta) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), &c)
+func (c *MenuMeta) Scan(input interface{}) error {
+	return json.Unmarshal(input.([]byte), c)
 }
 
 func (m *Menu) GetMenus() []*MenusFormat {
