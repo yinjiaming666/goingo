@@ -19,12 +19,12 @@ type Menu struct {
 }
 
 type MenusFormat struct {
-	Id        uint           `json:"id,omitempty"`
-	Component string         `json:"component,omitempty"`
-	Meta      MenuMeta       `json:"meta,omitempty"`
-	Name      string         `json:"name,omitempty"`
-	Path      string         `json:"path,omitempty"`
-	Pid       uint           `json:"pid,omitempty"`
+	Id        uint           `json:"id"`
+	Component string         `json:"component"`
+	Meta      MenuMeta       `json:"meta"`
+	Name      string         `json:"name"`
+	Path      string         `json:"path"`
+	Pid       uint           `json:"pid"`
 	Type      uint           `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"` // 是否为菜单
 	Children  []*MenusFormat `json:"children,omitempty" gorm:"-"`
 }
