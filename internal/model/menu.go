@@ -80,11 +80,12 @@ func (c *MenuMeta) Scan(input interface{}) error {
 	return json.Unmarshal(input.([]byte), c)
 }
 
-func (m *Menu) GetMenus() []*MenusFormat {
+func (m *Menu) GetMenus(ids []uint) []*MenusFormat {
+	tx := Db().Model(m)
 	list := make([]*MenusFormat, 0)
-	Db().Model(m).Where("pid = ?", 0).Find(&list)
-	for _, v := range list {
-		Db().Model(m).Where("pid = ?", v.Id).Find(&v.Children)
+	if len(ids) > 0 {
+		tx.Where("id IN ?", ids)
 	}
+	tx.Find(&list)
 	return list
 }

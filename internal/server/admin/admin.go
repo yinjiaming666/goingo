@@ -76,6 +76,19 @@ func ArticleList(content *gin.Context) {
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: data}).Response()
 }
 
+// GetArticleDetail 文章详情
+func GetArticleDetail(content *gin.Context) {
+	id, _ := strconv.Atoi(content.Query("id"))
+	if id <= 0 {
+		(&resp.JsonResp{Code: resp.ReSuccess, Message: "未查询到文章", Body: model2.Article{}}).Response()
+	}
+	article := &model2.Article{
+		Id: uint(id),
+	}
+	article = article.GetArticleDetail()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response()
+}
+
 // AdminLogin Login 管理员登录
 func AdminLogin(content *gin.Context) {
 	account := content.PostForm("account")
@@ -109,6 +122,12 @@ func AdminLogin(content *gin.Context) {
 func GetAdminInfo(c *gin.Context) {
 	admin, _ := c.Get(string(jwt.AdminJwtType))
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin}).Response()
+}
+
+// GetAdminList 获取管理员列表
+func GetAdminList(c *gin.Context) {
+	admin := model2.Admin{}
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin.GetList(0)}).Response()
 }
 
 // GetMenu 获取路由
@@ -216,17 +235,4 @@ func SetAdminInfo(c *gin.Context) {
 	admin = &model2.Admin{Id: admin.Id}
 	admin = admin.UpdateAdmin(data)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response()
-}
-
-// GetArticleDetail 文章详情
-func GetArticleDetail(content *gin.Context) {
-	id, _ := strconv.Atoi(content.Query("id"))
-	if id <= 0 {
-		(&resp.JsonResp{Code: resp.ReSuccess, Message: "未查询到文章", Body: model2.Article{}}).Response()
-	}
-	article := &model2.Article{
-		Id: uint(id),
-	}
-	article = article.GetArticleDetail()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response()
 }

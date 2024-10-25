@@ -1204,3 +1204,17 @@ func Timestamp2Str(timestamp int64) string {
 	t := time.Unix(timestamp, 0)
 	return t.Format(time.DateTime)
 }
+
+// Explode 字符串转切片
+func Explode[T BuiltinT](sep, str string) ([]T, error) {
+	split := strings.Split(sep, str)
+	n := make([]T, 0)
+	for _, v := range split {
+		conv, err := Conv[T](v)
+		if err != nil {
+			return nil, err
+		}
+		n = append(n, conv)
+	}
+	return n, nil
+}
