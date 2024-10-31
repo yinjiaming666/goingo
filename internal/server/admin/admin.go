@@ -209,30 +209,29 @@ func GetCateList(_ *gin.Context) {
 
 // SetAdminInfo 更新管理员信息
 func SetAdminInfo(c *gin.Context) {
-	temp, _ := c.Get(string(jwt.AdminJwtType))
-	admin, ok := temp.(*model2.Admin)
-	if !ok {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "未查询到账号", Body: nil}).Response()
-	}
-
 	name := c.PostForm("name")
 	password := c.PostForm("password")
 	avatar := c.PostForm("avatar")
+	id := c.PostForm("id")
+	admin := model2.Admin{}
 
-	data := make(map[string]interface{})
 	if name != "" {
-		data["name"] = name
+		admin.Name = name
 	}
 
 	if avatar != "" {
-		data["avatar"] = avatar
+		admin.Avatar = avatar
 	}
 
 	if password != "" {
-		data["password"] = tools.Md5(password, model2.UserPwdSalt)
+		admin.Password = tools.Md5(password, model2.UserPwdSalt)
 	}
 
-	admin = &model2.Admin{Id: admin.Id}
-	admin = admin.UpdateAdmin(data)
+	if id != "" {
+		i, _ := conv.Conv[uint](id)
+		admin.Id = i
+	}
+
+	admin.SetAdmin()
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response()
 }

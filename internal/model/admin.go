@@ -30,7 +30,11 @@ func (admin *Admin) GetList(pid uint) []*Admin {
 	return list
 }
 
-func (admin *Admin) UpdateAdmin(data map[string]interface{}) *Admin {
-	Db().Model(&admin).Updates(data)
+func (admin *Admin) SetAdmin() *Admin {
+	if admin.Id <= 0 {
+		Db().Create(&admin)
+	} else {
+		Db().Select("title", "content", "status", "cate_id", "type").Model(&admin).Updates(&admin)
+	}
 	return admin
 }
