@@ -1,6 +1,7 @@
 package router
 
 import (
+	global "app/internal"
 	middleware2 "app/internal/middleware"
 	"app/tools/logger"
 	"fmt"
@@ -17,8 +18,17 @@ type RouteGateway interface {
 func InitRouter(port string) {
 	var err error
 
+	if global.Mode == "dev" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.New()
+
 	r.Use(middleware2.CORSMiddleware()) // 解决跨域
+
+	_ = r.SetTrustedProxies([]string{"127.0.0.1"})
 
 	f, _ := os.OpenFile(logger.AccessLogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
 	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)

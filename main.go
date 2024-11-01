@@ -17,9 +17,20 @@ import (
 	"time"
 )
 
+const LOGO = `
+ ██████╗   ██████╗  ██╗ ███╗   ██╗  ██████╗   ██████╗ 
+██╔════╝  ██╔═══██╗ ██║ ████╗  ██║ ██╔════╝  ██╔═══██╗
+██║  ███╗ ██║   ██║ ██║ ██╔██╗ ██║ ██║  ███╗ ██║   ██║
+██║   ██║ ██║   ██║ ██║ ██║╚██╗██║ ██║   ██║ ██║   ██║
+╚██████╔╝ ╚██████╔╝ ██║ ██║ ╚████║ ╚██████╔╝ ╚██████╔╝
+ ╚═════╝   ╚═════╝  ╚═╝ ╚═╝  ╚═══╝  ╚═════╝   ╚═════╝ 
+`
+
 var err error
 
 func main() {
+	fmt.Print(LOGO)
+
 	flag.StringVar(&global.Mode, "mode", "dev", "-mode=prod, -mode=dev") // "dev" or "prod"
 	flag.StringVar(&global.InitDb, "initDb", "false", "-initDb=true, -initDb=false")
 	flag.Parse()
