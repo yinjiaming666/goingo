@@ -17,20 +17,29 @@ func CheckJwt() func(c *gin.Context) {
 		if token == "" {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "请上传jwt", Body: nil}).Response()
 		}
-		// golang 变量作用域跟 js 的 let 类似，for if switch 中声明的变量不能拿到外面去用
 		tl := logic2.TokenLogic{}
 		data := tl.CheckJwt(token)
 
 		switch data.Type {
 		case jwt.AdminJwtType:
-			user := &model.Admin{
-				Id: data.Uid,
+			if logic2.GetAdminAuth(data.Uid) != nil {
+				c.Set(string(jwt.AdminJwtType), logic2.GetAdminAuth(data.Uid))
+			} else {
+				user := &model.Admin{
+					Id: data.Uid,
+				}
+				user = user.GetAdmin()
+				if user.Id <= 0 {
+					(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
+				}
+
+				isSuper := user.RolesGroupIds == "*"
+				auth := logic2.NewAdminAuth(user.Id, user.Pid, user.RolesGroupIds, isSuper)
+				auth.Name = user.Name
+				auth.Avatar = user.Avatar
+				auth.Cache()
+				c.Set(string(jwt.AdminJwtType), auth) // c.Set() c.Get 跨中间件取值
 			}
-			user = user.GetAdmin()
-			if user.Id <= 0 {
-				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
-			}
-			c.Set(string(jwt.AdminJwtType), user) // c.Set() c.Get 跨中间件取值
 			c.Next()
 			break
 		case jwt.IndexJwtType:
@@ -39,7 +48,7 @@ func CheckJwt() func(c *gin.Context) {
 			if user.Id <= 0 {
 				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
 			}
-			c.Set(string(jwt.IndexJwtType), user) // c.Set() c.Get 跨中间件取值
+			c.Set(string(jwt.IndexJwtType), user)
 			c.Next()
 			break
 		}
@@ -59,12 +68,12 @@ func BackendAuth() func(c *gin.Context) {
 		}
 		fmt.Println(admin)
 		fmt.Println(c.Request.URL.Path)
-		menu := model.Menu{}
+		menu := model.Roles{}
 		menu.SearchByPath(c.Request.URL.Path)
 		if menu.Id == 0 {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 未查询到权限", Body: nil}).Response()
 		}
-		roleList := strings.Split(admin.RoleIds, ",")
+		roleList := strings.Split(admin.RolesGroupIds, ",")
 		checkId, _ := conv.Conv[string](menu.Id)
 		_, ok := conv.InSlice[string](roleList, checkId)
 		if ok == "" {

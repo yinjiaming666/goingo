@@ -32,7 +32,7 @@ func CreateJwt(id uint, jwtType JType, expireTime int64) (string, *UserJwt) {
 		expireTime = time.Now().Unix() + (60 * 60 * 24 * 30)
 	} else if expireTime == 0 {
 		expireTime = time.Now().Unix() + DefaultExpTime
-	} else if expireTime > 0 {
+	} else {
 		expireTime = time.Now().Unix() + expireTime
 	}
 

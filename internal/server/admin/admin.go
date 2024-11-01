@@ -125,13 +125,13 @@ func GetAdminInfo(c *gin.Context) {
 }
 
 // GetAdminList 获取管理员列表
-func GetAdminList(c *gin.Context) {
+func GetAdminList(_ *gin.Context) {
 	admin := model2.Admin{}
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin.GetList(0)}).Response()
 }
 
-// GetMenu 获取路由
-func GetMenu(c *gin.Context) {
+// GetRoles 获取路由
+func GetRoles(c *gin.Context) {
 	t, ok := c.GetQuery("type")
 	var tt int
 	if !ok {
@@ -139,13 +139,15 @@ func GetMenu(c *gin.Context) {
 	} else {
 		tt, _ = conv.Conv[int](t)
 	}
-	menu := model2.Role{}
-	menus := menu.GetMenusByRoleIds("*", tt)
+	admin, _ := c.Get(string(jwt.AdminJwtType))
+	m := admin.(*logic.AdminAuth)
+	auth := logic.GetAdminAuth(m.Id)
+	menus := auth.GetAllRules(tt)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response()
 }
 
-// SetMenu 设置路由
-func SetMenu(c *gin.Context) {
+// SetRoles 设置路由
+func SetRoles(c *gin.Context) {
 	id, err := conv.Conv[uint](c.PostForm("id"))
 	if err != nil {
 		fmt.Println(err)
@@ -164,14 +166,14 @@ func SetMenu(c *gin.Context) {
 	component := c.PostForm("component")
 	meta := c.PostFormMap("meta")
 
-	menuMeta := model2.MenuMeta{}
+	menuMeta := model2.RolesMeta{}
 	if v, ok := meta["title"]; ok {
 		menuMeta.Title = v
 	}
 	if v, ok := meta["icon"]; ok {
 		menuMeta.Icon = v
 	}
-	menu := &model2.Menu{
+	menu := &model2.Roles{
 		Id:        id,
 		Component: component,
 		Meta:      menuMeta,
@@ -181,12 +183,12 @@ func SetMenu(c *gin.Context) {
 		Type:      t,
 	}
 
-	menu = menu.SetMenu()
+	menu = menu.SetRoles()
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: menu}).Response()
 }
 
-// DelMenu 删除路由
-func DelMenu(c *gin.Context) {
+// DelRoles 删除路由
+func DelRoles(c *gin.Context) {
 	ids := c.PostForm("ids")
 	l := strings.Split(ids, ",")
 	var temp []int
@@ -196,8 +198,8 @@ func DelMenu(c *gin.Context) {
 			temp = append(temp, i)
 		}
 	}
-	article := &model2.Menu{}
-	article.DelMenu(temp)
+	article := &model2.Roles{}
+	article.DelRoles(temp)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
 }
 
@@ -230,8 +232,28 @@ func SetAdminInfo(c *gin.Context) {
 	if id != "" {
 		i, _ := conv.Conv[uint](id)
 		admin.Id = i
+	} else {
+		a, _ := c.Get(string(jwt.AdminJwtType))
+		aa := a.(*logic.AdminAuth)
+		admin.Pid = aa.Id
 	}
 
 	admin.SetAdmin()
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response()
+}
+
+// DelAdmin 删除管理员
+func DelAdmin(c *gin.Context) {
+	ids := c.PostForm("ids")
+	l := strings.Split(ids, ",")
+	var temp []int
+	for _, v := range l {
+		i, err := conv.Conv[int](v)
+		if err == nil {
+			temp = append(temp, i)
+		}
+	}
+	article := &model2.Admin{}
+	article.DelAdmin(temp)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
 }

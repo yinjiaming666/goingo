@@ -1,16 +1,15 @@
 package model
 
-import "app/tools/conv"
-
 type Admin struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
-	Id              uint           `json:"id" gorm:"primaryKey;type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
-	Account         string         `json:"account" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
-	Password        string         `json:"password" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
-	Avatar          string         `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
-	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
-	RoleIds         string         `json:"role_ids" gorm:"type:VARCHAR(1200) NOT NULL;default:''"`
-	RoleList        []*MenusFormat `json:"role_list" gorm:"-:all"`
+	Id              uint           `json:"id" gorm:"primaryKey; type:INT(11) UNSIGNED NOT NULL AUTO_INCREMENT"`
+	Pid             uint           `json:"pid" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0"`
+	Account         string         `json:"account" gorm:"type:VARCHAR(1200) NOT NULL;  default:''; comment:登录账号"`
+	Password        string         `json:"password" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Avatar          string         `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	RolesGroupIds   string         `json:"roles_group_ids" gorm:"type:VARCHAR(1200) NOT NULL; default:''; comment:权限分组(逗号分隔)"`
+	//RoleList        []*RolesFormat `json:"role_list" gorm:"-:all"`
 }
 
 func (admin *Admin) GetAdmin() *Admin {
@@ -20,13 +19,13 @@ func (admin *Admin) GetAdmin() *Admin {
 
 func (admin *Admin) GetList(pid uint) []*Admin {
 	list := make([]*Admin, 0)
-	menu := Menu{}
-	Db().Model(admin).Find(&list)
-	for _, v := range list {
-		explode, _ := conv.Explode[uint](",", v.RoleIds)
-		v.RoleList = menu.GetMenus(explode)
-		v.RoleList = menu.FormatTree(v.RoleList)
-	}
+	//menu := Roles{}
+	//Db().Model(admin).Find(&list)
+	//for _, v := range list {
+	//	explode, _ := conv.Explode[uint](",", v.RoleGroupIds)
+	//	v.RoleList = menu.GetRoles(explode)
+	//	v.RoleList = menu.FormatTree(v.RoleList)
+	//}
 	return list
 }
 
@@ -37,4 +36,8 @@ func (admin *Admin) SetAdmin() *Admin {
 		Db().Select("title", "content", "status", "cate_id", "type").Model(&admin).Updates(&admin)
 	}
 	return admin
+}
+
+func (admin *Admin) DelAdmin(ids []int) {
+	Db().Delete(&admin, ids)
 }

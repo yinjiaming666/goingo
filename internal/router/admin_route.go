@@ -19,8 +19,9 @@ func (r *AdminRoute) initRoute() {
 	r.group.GET("getAdminInfo", middleware.CheckJwt(), adminApi.GetAdminInfo)
 	r.group.GET("getCateList", middleware.CheckJwt(), adminApi.GetCateList)
 	r.group.POST("setAdminInfo", middleware.CheckJwt(), adminApi.SetAdminInfo)
-	r.group.GET("getMenu", middleware.CheckJwt(), adminApi.GetMenu)
-	r.group.POST("setMenu", middleware.CheckJwt(), adminApi.SetMenu)
-	r.group.POST("delMenu", middleware.CheckJwt(), adminApi.DelMenu)
+	r.group.GET("getRoles", middleware.CheckJwt(), adminApi.GetRoles)
+	r.group.POST("setRoles", middleware.CheckJwt(), adminApi.SetRoles)
+	r.group.POST("delRoles", middleware.CheckJwt(), adminApi.DelRoles)
 	r.group.GET("getAdminList", middleware.CheckJwt(), adminApi.GetAdminList)
+	r.group.GET("delAdmin", middleware.CheckJwt(), adminApi.DelAdmin)
 }
