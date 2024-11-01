@@ -6,13 +6,13 @@ import (
 )
 
 type AdminAuth struct {
-	Id            uint
-	Pid           uint
-	RolesGroupIds []uint
-	RolesIds      []uint
-	IsSuperAdmin  bool
-	Name          string
-	Avatar        string
+	Id            uint   `json:"id,omitempty"`
+	Pid           uint   `json:"pid,omitempty"`
+	RolesGroupIds []uint `json:"roles_group_ids,omitempty"`
+	RolesIds      []uint `json:"roles_ids,omitempty"`
+	IsSuperAdmin  bool   `json:"is_super_admin,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Avatar        string `json:"avatar,omitempty"`
 }
 
 var AdminList map[uint]*AdminAuth
