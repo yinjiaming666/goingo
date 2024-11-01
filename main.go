@@ -88,13 +88,13 @@ func main() {
 	if global.InitDb == "true" {
 		logger.Info("start init table ====================")
 		m := new(model.MysqlBaseModel)
-		m.CreateTable(model.User{})
+		m.SetTableComment("用户表").CreateTable(model.User{})
 		m.CreateTable(model.Token{})
 		m.CreateTable(model.Article{})
 		m.CreateTable(model.Admin{})
 		m.CreateTable(model.Cate{})
-		m.CreateTable(model.Menu{})
-		m.CreateTable(model.Role{})
+		m.CreateTable(model.Roles{})
+		m.SetTableComment("角色表").CreateTable(model.RolesGroup{})
 		logger.Info("end init table ====================")
 	}
 
