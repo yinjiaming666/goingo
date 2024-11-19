@@ -22,6 +22,9 @@ var UndefinedCallback HookeName = "undefined_callback"
 // AckMsgFail ack 消息失败事件
 var AckMsgFail HookeName = "ack_msg_fail"
 
+// WorkStartFail worker 启动失败
+var WorkStartFail HookeName = "work_start_fail"
+
 type HookFunc func(stream Stream, data map[string]any) *HookResult
 
 type Hook struct {

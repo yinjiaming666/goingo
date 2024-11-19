@@ -73,7 +73,7 @@ func (n *NormalStream) Create() error {
 	// 创建消费组时如果指定的 stream 不存在会报错。增加参数 MKSTREAM ，可以在 stream 不存在时自动创建它
 	res, err := Client.XGroupCreateMkStream(context.Background(), n.FullName(), n.HandelGroup().name, n.HandelGroup().start).Result()
 	if err != nil {
-		// todo
+		return err
 	}
 	logger.Debug("队列：" + n.FullName() + "创建执行消费者组" + res)
 	for k, consumer := range n.HandelGroup().ConsumerList {
@@ -84,7 +84,7 @@ func (n *NormalStream) Create() error {
 		n.HandelGroup().ConsumerList[k].SetGroupName(n.HandelGroup().name)
 		_, err = Client.XGroupCreateConsumer(context.Background(), n.FullName(), n.HandelGroup().name, consumer.Name()).Result()
 		if err != nil {
-			// todo
+			return err
 		}
 		consumer.SetCallback(func(msg *Msg) *CallbackResult {
 			fun, ok := CallbackMap[msg.CallbackName]
@@ -333,7 +333,14 @@ func (c *NormalConsumer) work(hook chan *Hook) {
 			Block:    0,
 		}).Result()
 		if err != nil {
-			// todo hook
+			hook <- &Hook{
+				name: &WorkStartFail,
+				data: map[string]any{
+					"consumer": c.name,
+					"msg":      "worker start fail",
+				},
+			}
+			return
 		}
 		for _, xStream := range result {
 			ml := ParseMsg(xStream.Messages)
@@ -433,7 +440,14 @@ func (d *DelayConsumer) work(hook chan *Hook) {
 			Max: nowStr,
 		}).Result()
 		if err != nil {
-			// todo
+			hook <- &Hook{
+				name: &WorkStartFail,
+				data: map[string]any{
+					"consumer": d.name,
+					"msg":      "worker start fail",
+				},
+			}
+			return
 		}
 		for _, member := range result {
 			msg := Json2Msg(member)
@@ -456,7 +470,6 @@ func (d *DelayConsumer) work(hook chan *Hook) {
 				}
 				continue
 			}
-			// todo
 
 			i, err := Client.ZRem(context.Background(), d.StreamName(), member).Result()
 			if err != nil {
