@@ -16,7 +16,7 @@ func GetCateList(_ *gin.Context) {
 // IndexArticleList 前台文章列表
 func IndexArticleList(c *gin.Context) {
 	title := c.Query("title")
-	cateId, _ := strconv.Atoi(c.Query("cate_id")) // 字符串转 int 必须要 strconv 这个包
+	cateId, _ := strconv.Atoi(c.Query("cate_id"))
 
 	search := model.ArticleSearch{Title: title, Status: 0, CateId: uint(cateId)}
 	article := new(model.ApiArticleList)

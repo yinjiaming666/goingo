@@ -7,7 +7,7 @@ import (
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin") //请求头部
+		origin := c.Request.Header.Get("Origin") // 请求头部
 		if origin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")

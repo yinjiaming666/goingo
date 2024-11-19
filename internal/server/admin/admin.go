@@ -18,9 +18,9 @@ func SetArticle(content *gin.Context) {
 	title := content.PostForm("title")
 	contents := content.PostForm("content")
 	status, _ := strconv.Atoi(content.PostForm("status"))
-	id, _ := strconv.Atoi(content.PostForm("id"))            // 字符串转 int 必须要 strconv 这个包
-	cateId, _ := strconv.Atoi(content.PostForm("cate_id"))   // 字符串转 int 必须要 strconv 这个包
-	articleType, _ := strconv.Atoi(content.PostForm("type")) // 字符串转 int 必须要 strconv 这个包
+	id, _ := strconv.Atoi(content.PostForm("id"))
+	cateId, _ := strconv.Atoi(content.PostForm("cate_id"))
+	articleType, _ := strconv.Atoi(content.PostForm("type"))
 
 	article := &model2.Article{
 		Id:      uint(id),
