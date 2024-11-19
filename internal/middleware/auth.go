@@ -8,7 +8,6 @@ import (
 	"app/tools/resp"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"strings"
 )
 
 func CheckJwt() func(c *gin.Context) {
@@ -57,13 +56,8 @@ func CheckJwt() func(c *gin.Context) {
 // BackendAuth 管理后台鉴权
 func BackendAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var admin model.Admin
-		a, _ := c.Get(string(jwt.AdminJwtType))
-		if t, ok := a.(model.Admin); !ok {
-			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 解析错误", Body: nil}).Response()
-		} else {
-			admin = t
-		}
+		adminId := c.GetUint(string(jwt.AdminJwtType))
+		admin := logic2.GetAdminAuth(adminId)
 		fmt.Println(admin)
 		fmt.Println(c.Request.URL.Path)
 		menu := model.Roles{}
@@ -71,10 +65,9 @@ func BackendAuth() func(c *gin.Context) {
 		if menu.Id == 0 {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 未查询到权限", Body: nil}).Response()
 		}
-		roleList := strings.Split(admin.RolesGroupIds, ",")
-		checkId, _ := conv.Conv[string](menu.Id)
-		_, ok := conv.InSlice[string](roleList, checkId)
-		if ok == "" {
+		checkId, _ := conv.Conv[uint](menu.Id)
+		has, _ := conv.InSlice[uint](admin.RolesIds, checkId)
+		if has == -1 {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 无权限访问", Body: nil}).Response()
 		}
 		c.Next()
