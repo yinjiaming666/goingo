@@ -75,7 +75,7 @@ func (n *NormalStream) Create() error {
 	if err != nil {
 		// todo
 	}
-	logger.Info("队列：" + n.FullName() + "创建执行消费者组" + res)
+	logger.Debug("队列：" + n.FullName() + "创建执行消费者组" + res)
 	for k, consumer := range n.HandelGroup().ConsumerList {
 		if consumer.Name() == "" {
 			return errors.New("empty consumer name")
@@ -105,7 +105,7 @@ func (n *NormalStream) Create() error {
 				return (*fun)(msg)
 			}
 		})
-		logger.Info("队列：" + n.FullName() + "执行消费者组创建消费者：" + consumer.Name())
+		logger.Debug("队列：" + n.FullName() + "执行消费者组创建消费者：" + consumer.Name())
 	}
 
 	streamList[string(Normal)+"-"+n.Name()] = n

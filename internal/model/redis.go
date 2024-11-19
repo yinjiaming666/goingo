@@ -23,12 +23,12 @@ func InitRedis(c *RedisConf) {
 	}
 
 	RedisClient = redis.NewClient(o)
-	res, err := RedisClient.Ping(context.Background()).Result()
+	_, err := RedisClient.Ping(context.Background()).Result()
 	if err != nil {
 		println(err.Error())
-		logger.Error("redis connect fail", err.Error())
+		logger.Error("REDIS CONNECT FAIL", err.Error())
 	} else {
-		logger.Info("redis init success", res)
+		logger.System("REDIS INIT SUCCESS")
 	}
 
 	KeyUtils.BaseName = global.ServerName

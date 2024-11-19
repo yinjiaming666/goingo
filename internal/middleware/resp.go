@@ -15,7 +15,7 @@ func RespMiddleware() gin.HandlerFunc {
 				switch e.(type) {
 				case resp.Response:
 					// 捕获响应
-					logger.Info("Response", "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm, "res", map[string]any{
+					logger.System("Response", "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm, "res", map[string]any{
 						"code": e.(resp.Response).GetCode(),
 						"msg":  e.(resp.Response).GetMsg(),
 						"data": e.(resp.Response).GetBody(),

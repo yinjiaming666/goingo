@@ -13,16 +13,16 @@ import (
 
 type User struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
-	Id              uint           `redis:"Id" json:"id" gorm:"primaryKey;type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
-	Password        string         `redis:"Password" json:"password" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
-	Nickname        string         `redis:"Nickname" json:"nickname" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
-	HeadImg         string         `redis:"HeadImg" json:"head_img" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
-	Status          uint8          `redis:"Status" json:"status" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
-	CreateTime      int64          `redis:"CreateTime" json:"create_time" gorm:"autoCreateTime;type:BIGINT UNSIGNED NOT NULL;"` // 自动写入时间戳
-	CreateTimeStr   string         `redis:"-" json:"create_time_str" gorm:"-:all"`                                              // -:all 无读写迁移权限，该字段不在数据库中
-	Age             uint8          `redis:"Age" json:"age" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
-	Sex             uint8          `redis:"Sex" json:"sex" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
-	Money           float64        `redis:"Money" json:"money" gorm:"type:DECIMAL(10,2) UNSIGNED NOT NULL;default:0.00"`
+	Id              uint    `redis:"Id" json:"id" gorm:"primaryKey;type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
+	Password        string  `redis:"Password" json:"password" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
+	Nickname        string  `redis:"Nickname" json:"nickname" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
+	HeadImg         string  `redis:"HeadImg" json:"head_img" gorm:"type:VARCHAR(255) NOT NULL;default:''"`
+	Status          uint8   `redis:"Status" json:"status" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
+	CreateTime      int64   `redis:"CreateTime" json:"create_time" gorm:"autoCreateTime;type:BIGINT UNSIGNED NOT NULL;"` // 自动写入时间戳
+	CreateTimeStr   string  `redis:"-" json:"create_time_str" gorm:"-:all"`                                              // -:all 无读写迁移权限，该字段不在数据库中
+	Age             uint8   `redis:"Age" json:"age" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
+	Sex             uint8   `redis:"Sex" json:"sex" gorm:"type:TINYINT(8) UNSIGNED NOT NULL;default:0"`
+	Money           float64 `redis:"Money" json:"money" gorm:"type:DECIMAL(10,2) UNSIGNED NOT NULL;default:0.00"`
 }
 
 func (user *User) GetUserInfo() {

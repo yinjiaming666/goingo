@@ -54,9 +54,9 @@ func InitRouter(port string) {
 	r.Use(gin.LoggerWithConfig(c))
 
 	r.Use(middleware2.RespMiddleware()) // 响应中间件
-
-	AdminRoute := AdminRoute{group: r.Group("api/admin")}
-	IndexRoute := IndexRoute{group: r.Group("api/index")}
+	rr := r.Group(global.Version)
+	AdminRoute := AdminRoute{group: rr.Group("api/admin")}
+	IndexRoute := IndexRoute{group: rr.Group("api/index")}
 	AdminRoute.initRoute()
 	IndexRoute.initRoute()
 

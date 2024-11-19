@@ -2,13 +2,13 @@ package model
 
 type Admin struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
-	Id              uint           `json:"id" gorm:"primaryKey; type:INT(11) UNSIGNED NOT NULL AUTO_INCREMENT"`
-	Pid             uint           `json:"pid" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0"`
-	Account         string         `json:"account" gorm:"type:VARCHAR(1200) NOT NULL;  default:''; comment:登录账号"`
-	Password        string         `json:"password" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	Avatar          string         `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	RolesGroupIds   string         `json:"roles_group_ids" gorm:"type:VARCHAR(1200) NOT NULL; default:''; comment:权限分组(逗号分隔)"`
+	Id              uint   `json:"id" gorm:"primaryKey; type:INT(11) UNSIGNED NOT NULL AUTO_INCREMENT"`
+	Pid             uint   `json:"pid" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0"`
+	Account         string `json:"account" gorm:"type:VARCHAR(1200) NOT NULL;  default:''; comment:登录账号"`
+	Password        string `json:"password" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Avatar          string `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Name            string `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	RolesGroupIds   string `json:"roles_group_ids" gorm:"type:VARCHAR(1200) NOT NULL; default:''; comment:权限分组(逗号分隔)"`
 	//RoleList        []*RolesFormat `json:"role_list" gorm:"-:all"`
 }
 

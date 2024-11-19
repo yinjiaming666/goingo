@@ -42,6 +42,7 @@ func main() {
 	}).Init()
 
 	global.ServerName = confg.Get[string](conf, "server", "name")
+	global.Version = confg.Get[string](conf, "server", "version")
 	pid := os.Getpid()
 	var buf = make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(pid))
@@ -86,7 +87,7 @@ func main() {
 	})
 
 	if global.InitDb == "true" {
-		logger.Info("start init table ====================")
+		logger.System("START INIT TABLE ====================")
 		m := new(model.MysqlBaseModel)
 		m.SetTableComment("用户表").CreateTable(model.User{})
 		m.CreateTable(model.Token{})
@@ -95,7 +96,7 @@ func main() {
 		m.CreateTable(model.Cate{})
 		m.CreateTable(model.Roles{})
 		m.SetTableComment("角色表").CreateTable(model.RolesGroup{})
-		logger.Info("end init table ====================")
+		logger.System("END INIT TABLE ====================")
 	}
 
 	//queue.Init("goingo-queue", redis.NewClient(&redis.Options{
