@@ -22,24 +22,22 @@ func CheckJwt() func(c *gin.Context) {
 
 		switch data.Type {
 		case jwt.AdminJwtType:
-			if logic2.GetAdminAuth(data.Uid) != nil {
-				c.Set(string(jwt.AdminJwtType), logic2.GetAdminAuth(data.Uid))
-			} else {
-				user := &model.Admin{
-					Id: data.Uid,
-				}
-				user = user.GetAdmin()
-				if user.Id <= 0 {
-					(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
-				}
-
-				isSuper := user.RolesGroupIds == "*"
-				auth := logic2.NewAdminAuth(user.Id, user.Pid, user.RolesGroupIds, isSuper)
-				auth.Name = user.Name
-				auth.Avatar = user.Avatar
-				auth.Cache()
-				c.Set(string(jwt.AdminJwtType), auth) // c.Set() c.Get 跨中间件取值
+			user := &model.Admin{
+				Id: data.Uid,
 			}
+			user = user.GetAdmin()
+			if user.Id <= 0 {
+				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
+			}
+			isSuper := user.IsSuper == 1
+
+			groupIds := (new(model.AdminRolesGroup)).GetGroupIdsByAdminId(user.Id)
+
+			auth := logic2.NewAdminAuth(user.Id, user.Pid, groupIds, isSuper)
+			auth.Name = user.Name
+			auth.Avatar = user.Avatar
+			auth.Cache()
+			c.Set(string(jwt.AdminJwtType), auth.Id) // c.Set() c.Get 跨中间件取值
 			c.Next()
 			break
 		case jwt.IndexJwtType:

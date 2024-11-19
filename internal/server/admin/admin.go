@@ -89,7 +89,7 @@ func GetArticleDetail(content *gin.Context) {
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response()
 }
 
-// AdminLogin Login 管理员登录
+// AdminLogin 管理员登录
 func AdminLogin(content *gin.Context) {
 	account := content.PostForm("account")
 	password := content.PostForm("password")
@@ -120,8 +120,8 @@ func AdminLogin(content *gin.Context) {
 
 // GetAdminInfo 获取管理员信息
 func GetAdminInfo(c *gin.Context) {
-	admin, _ := c.Get(string(jwt.AdminJwtType))
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin}).Response()
+	adminId := c.GetUint(string(jwt.AdminJwtType))
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: logic.GetAdminAuth(adminId)}).Response()
 }
 
 // GetAdminList 获取管理员列表
@@ -139,8 +139,8 @@ func GetRoles(c *gin.Context) {
 	} else {
 		tt, _ = conv.Conv[int](t)
 	}
-	admin, _ := c.Get(string(jwt.AdminJwtType))
-	m := admin.(*logic.AdminAuth)
+	adminId := c.GetUint(string(jwt.AdminJwtType))
+	m := logic.GetAdminAuth(adminId)
 	auth := logic.GetAdminAuth(m.Id)
 	menus := auth.GetAllRules(tt)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response()
@@ -233,8 +233,8 @@ func SetAdminInfo(c *gin.Context) {
 		i, _ := conv.Conv[uint](id)
 		admin.Id = i
 	} else {
-		a, _ := c.Get(string(jwt.AdminJwtType))
-		aa := a.(*logic.AdminAuth)
+		a := c.GetUint(string(jwt.AdminJwtType))
+		aa := logic.GetAdminAuth(a)
 		admin.Pid = aa.Id
 	}
 
@@ -256,4 +256,75 @@ func DelAdmin(c *gin.Context) {
 	article := &model2.Admin{}
 	article.DelAdmin(temp)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
+}
+
+// GetRolesGroupList 获取角色组列表
+func GetRolesGroupList(c *gin.Context) {
+	adminId := c.GetUint(string(jwt.AdminJwtType))
+	if logic.GetAdminAuth(adminId).IsSuperAdmin {
+		adminId = 0
+	}
+	list := (new(model2.RolesGroup)).GetRolesGroupList(adminId)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response()
+}
+
+// SetRolesGroup 设置角色组
+func SetRolesGroup(c *gin.Context) {
+	rolesIds := conv.ConvPostForm[string](c, "roles_ids")
+	id := conv.ConvPostForm[uint](c, "id")
+	name := conv.ConvPostForm[string](c, "name")
+	adminId := c.GetUint(string(jwt.AdminJwtType))
+
+	group := model2.RolesGroup{}
+	if id > 0 {
+		group.Id = id
+		// 校验是否可以修改该角色组
+		group.GetRolesGroup()
+		if group.AdminId != adminId {
+			(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
+		}
+	}
+
+	if name != "" {
+		group.Name = name
+	}
+	if rolesIds == "" {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 不能为空", Body: nil}).Response()
+	}
+	rolesIdsList, err := conv.Explode[uint](",", rolesIds)
+	if err != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 格式错误", Body: nil}).Response()
+	}
+	roles := model2.Roles{}
+	getRoles := roles.GetRoles(rolesIdsList, -1)
+	if len(getRoles) != len(rolesIdsList) {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "illegal roles_ids", Body: nil}).Response()
+	}
+
+	a := logic.GetAdminAuth(adminId)
+	if a.AuthRules(rolesIdsList) != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此模块", Body: nil}).Response()
+	}
+	group.AdminId = adminId
+	rolesGroup := group.SetRolesGroup()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "操作成功", Body: rolesGroup}).Response()
+}
+
+// DelRolesGroup 删除角色组
+func DelRolesGroup(c *gin.Context) {
+	groupId := conv.ConvPostForm[uint](c, "group_id")
+	if groupId < 0 {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "缺少参数", Body: nil}).Response()
+	}
+	adminId := c.GetUint(string(jwt.AdminJwtType))
+	group := model2.RolesGroup{}
+	group.Id = groupId
+	group.GetRolesGroup()
+	if group.AdminId != adminId {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
+	}
+	group.DelRolesGroup()
+	adminGroup := model2.AdminRolesGroup{}
+	adminGroup.DelByRolesGroupId(groupId)
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "删除成功", Body: nil}).Response()
 }

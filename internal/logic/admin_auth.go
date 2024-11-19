@@ -3,6 +3,7 @@ package logic
 import (
 	"app/internal/model"
 	"app/tools/conv"
+	"errors"
 )
 
 type AdminAuth struct {
@@ -21,17 +22,17 @@ func init() {
 	AdminList = make(map[uint]*AdminAuth)
 }
 
-func NewAdminAuth(id, pid uint, rolesGroupIds string, isSuper bool) *AdminAuth {
+func NewAdminAuth(id, pid uint, rolesGroupIds []uint, isSuper bool) *AdminAuth {
 	group := model.RolesGroup{}
 	auth := AdminAuth{}
 	auth.Id = id
 	auth.Pid = pid
 	auth.IsSuperAdmin = isSuper
-	if rolesGroupIds == "*" {
+	if isSuper {
 		auth.RolesGroupIds = nil
 		auth.RolesIds = nil
 	} else {
-		auth.RolesGroupIds, _ = conv.Explode[uint](",", rolesGroupIds)
+		auth.RolesGroupIds = rolesGroupIds
 		auth.RolesIds = group.GetRolesIdsByIds(auth.RolesGroupIds)
 	}
 	return &auth
@@ -64,4 +65,17 @@ func (a *AdminAuth) GetAllRules(t int) []*model.RolesFormat {
 	}
 	getRoles := roles.GetRoles(ids, t)
 	return roles.FormatTree(getRoles)
+}
+
+// AuthRules 校验权限
+func (a *AdminAuth) AuthRules(ids []uint) error {
+	if a.IsSuperAdmin {
+		return nil
+	}
+	for _, roleId := range ids {
+		if k, _ := conv.InSlice[uint](a.RolesIds, roleId); k == -1 {
+			return errors.New("AuthRules Fail")
+		}
+	}
+	return nil
 }

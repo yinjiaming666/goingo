@@ -24,4 +24,7 @@ func (r *AdminRoute) initRoute() {
 	r.group.POST("delRoles", middleware.CheckJwt(), adminApi.DelRoles)
 	r.group.GET("getAdminList", middleware.CheckJwt(), adminApi.GetAdminList)
 	r.group.GET("delAdmin", middleware.CheckJwt(), adminApi.DelAdmin)
+	r.group.GET("setRolesGroup", middleware.CheckJwt(), adminApi.SetRolesGroup)
+	r.group.GET("getRolesGroupList", middleware.CheckJwt(), adminApi.GetRolesGroupList)
+	r.group.GET("delRolesGroup", middleware.CheckJwt(), adminApi.DelRolesGroup)
 }

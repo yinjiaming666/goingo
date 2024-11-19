@@ -2,9 +2,11 @@ package conv
 
 import (
 	"app/tools/jwt"
+	"app/tools/logger"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"html/template"
 	"reflect"
 	"strconv"
@@ -1217,4 +1219,13 @@ func Explode[T BuiltinT](sep, str string) ([]T, error) {
 		n = append(n, conv)
 	}
 	return n, nil
+}
+
+func ConvPostForm[T BuiltinT](ctx *gin.Context, key string) T {
+	v := ctx.PostForm(key)
+	conv, err := Conv[T](v)
+	if err != nil {
+		logger.Error("ConvPostForm fail", "key", key, "val", v)
+	}
+	return conv
 }
