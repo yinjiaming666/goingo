@@ -1,8 +1,8 @@
 package router
 
 import (
+	"app/internal/controller/index"
 	"app/internal/middleware"
-	"app/internal/server/index"
 	"github.com/gin-gonic/gin"
 )
 
