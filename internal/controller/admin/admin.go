@@ -270,9 +270,10 @@ func GetRolesGroupList(c *gin.Context) {
 
 // SetRolesGroup 设置角色组
 func SetRolesGroup(c *gin.Context) {
-	rolesIds := conv.ConvPostForm[string](c, "roles_ids")
-	id := conv.ConvPostForm[uint](c, "id")
-	name := conv.ConvPostForm[string](c, "name")
+	rolesIds := conv.PostForm[string](c, "roles_ids")
+	id := conv.PostForm[uint](c, "id")
+	name := conv.PostForm[string](c, "name")
+	pid := conv.PostForm[uint](c, "pid")
 	adminId := c.GetUint(string(jwt.AdminJwtType))
 
 	group := model2.RolesGroup{}
@@ -284,7 +285,9 @@ func SetRolesGroup(c *gin.Context) {
 			(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
 		}
 	}
-
+	if pid > 0 {
+		group.Pid = pid
+	}
 	if name != "" {
 		group.Name = name
 	}
@@ -312,7 +315,7 @@ func SetRolesGroup(c *gin.Context) {
 
 // DelRolesGroup 删除角色组
 func DelRolesGroup(c *gin.Context) {
-	groupId := conv.ConvPostForm[uint](c, "group_id")
+	groupId := conv.PostForm[uint](c, "group_id")
 	if groupId < 0 {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "缺少参数", Body: nil}).Response()
 	}

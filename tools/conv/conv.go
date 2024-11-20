@@ -1221,11 +1221,11 @@ func Explode[T BuiltinT](sep, str string) ([]T, error) {
 	return n, nil
 }
 
-func ConvPostForm[T BuiltinT](ctx *gin.Context, key string) T {
+func PostForm[T BuiltinT](ctx *gin.Context, key string) T {
 	v := ctx.PostForm(key)
 	conv, err := Conv[T](v)
 	if err != nil {
-		logger.Error("ConvPostForm fail", "key", key, "val", v)
+		logger.Error("PostForm fail", "key", key, "val", v)
 	}
 	return conv
 }
