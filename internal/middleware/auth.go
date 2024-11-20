@@ -30,9 +30,10 @@ func CheckJwt() func(c *gin.Context) {
 			}
 			isSuper := user.IsSuper == 1
 
-			groupIds := (new(model.AdminRolesGroup)).GetGroupIdsByAdminId(user.Id)
-
-			auth := logic2.NewAdminAuth(user.Id, user.Pid, groupIds, isSuper)
+			rolesGroup := new(model.RolesGroup)
+			rolesGroup.Id = user.RolesGroupId
+			rolesGroup.GetRolesGroup()
+			auth := logic2.NewAdminAuth(user.Id, user.Pid, rolesGroup, isSuper)
 			auth.Name = user.Name
 			auth.Avatar = user.Avatar
 			auth.Cache()

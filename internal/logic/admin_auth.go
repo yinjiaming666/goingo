@@ -7,13 +7,13 @@ import (
 )
 
 type AdminAuth struct {
-	Id            uint   `json:"id,omitempty"`
-	Pid           uint   `json:"pid,omitempty"`
-	RolesGroupIds []uint `json:"roles_group_ids,omitempty"`
-	RolesIds      []uint `json:"roles_ids,omitempty"`
-	IsSuperAdmin  bool   `json:"is_super_admin,omitempty"`
-	Name          string `json:"name,omitempty"`
-	Avatar        string `json:"avatar,omitempty"`
+	Id           uint              `json:"id,omitempty"`
+	Pid          uint              `json:"pid,omitempty"`
+	RolesGroup   *model.RolesGroup `json:"roles_group,omitempty"`
+	RolesIds     []uint            `json:"roles_ids,omitempty"`
+	IsSuperAdmin bool              `json:"is_super_admin,omitempty"`
+	Name         string            `json:"name,omitempty"`
+	Avatar       string            `json:"avatar,omitempty"`
 }
 
 var AdminList map[uint]*AdminAuth
@@ -22,18 +22,19 @@ func init() {
 	AdminList = make(map[uint]*AdminAuth)
 }
 
-func NewAdminAuth(id, pid uint, rolesGroupIds []uint, isSuper bool) *AdminAuth {
+func NewAdminAuth(id, pid uint, RolesGroup *model.RolesGroup, isSuper bool) *AdminAuth {
 	group := model.RolesGroup{}
 	auth := AdminAuth{}
 	auth.Id = id
 	auth.Pid = pid
 	auth.IsSuperAdmin = isSuper
 	if isSuper {
-		auth.RolesGroupIds = nil
+		auth.RolesGroup = nil
 		auth.RolesIds = nil
 	} else {
-		auth.RolesGroupIds = rolesGroupIds
-		auth.RolesIds = group.GetRolesIdsByIds(auth.RolesGroupIds)
+		auth.RolesGroup = RolesGroup
+		explode, _ := conv.Explode[uint](",", RolesGroup.RolesIds)
+		auth.RolesIds = group.GetRolesIdsByIds(explode)
 	}
 	return &auth
 }

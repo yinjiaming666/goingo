@@ -324,7 +324,5 @@ func DelRolesGroup(c *gin.Context) {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
 	}
 	group.DelRolesGroup()
-	adminGroup := model2.AdminRolesGroup{}
-	adminGroup.DelByRolesGroupId(groupId)
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "删除成功", Body: nil}).Response()
 }

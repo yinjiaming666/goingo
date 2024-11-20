@@ -9,6 +9,7 @@ type Admin struct {
 	Avatar          string         `json:"avatar" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
 	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
 	IsSuper         uint8          `json:"is_super" gorm:"type:TINYINT(8) NOT NULL; default:0; comment:1 超级管理员"`
+	RolesGroupId    uint           `json:"roles_group_id" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0; comment:所属角色组"`
 	// RoleList        []*RolesFormat `json:"role_list" gorm:"-:all"`
 }
 
