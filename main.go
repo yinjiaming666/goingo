@@ -41,8 +41,8 @@ func main() {
 		FileName: global.Mode, // dev or prod
 	}).Init()
 
-	global.ServerName = confg.Get[string](conf, "controller", "name")
-	global.Version = confg.Get[string](conf, "controller", "version")
+	global.ServerName = confg.Get[string](conf, "server", "name")
+	global.Version = confg.Get[string](conf, "server", "version")
 	pid := os.Getpid()
 	var buf = make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(pid))
@@ -125,7 +125,7 @@ func main() {
 	//
 	//initQueueFunc()
 
-	port := confg.Get[string](conf, "controller", "port")
+	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)
 }
 

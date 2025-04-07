@@ -7,6 +7,12 @@ import (
 type UserLogic struct {
 }
 
+var UserLogicInstance UserLogic
+
+func init() {
+	UserLogicInstance = UserLogic{}
+}
+
 // LoadUser 根据 uid 搜索用户
 func (u UserLogic) LoadUser(uid uint) *model2.User {
 	userModel := &model2.User{Id: uid}

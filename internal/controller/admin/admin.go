@@ -109,8 +109,7 @@ func AdminLogin(content *gin.Context) {
 	}
 
 	data := make(map[string]interface{})
-	tokenLogic := logic.TokenLogic{}
-	j, userJwt := tokenLogic.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
+	j, userJwt := logic.TokenLogicInstance.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt

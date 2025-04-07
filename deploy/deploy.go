@@ -18,7 +18,7 @@ import (
 func main() {
 	serverConf := (&confg.Config{
 		Path:     "../config",
-		FileName: "controller",
+		FileName: "server",
 	}).Init()
 
 	buildConf := (&confg.Config{
@@ -26,10 +26,10 @@ func main() {
 		FileName: "build",
 	}).Init()
 
-	proName := confg.Get[string](serverConf, "controller", "pro_name")
-	userName := confg.Get[string](serverConf, "controller", "username")
-	password := confg.Get[string](serverConf, "controller", "password")
-	ip := confg.Get[string](serverConf, "controller", "ip")
+	proName := confg.Get[string](serverConf, "server", "pro_name")
+	userName := confg.Get[string](serverConf, "server", "username")
+	password := confg.Get[string](serverConf, "server", "password")
+	ip := confg.Get[string](serverConf, "server", "ip")
 
 	cgo := confg.Get[string](buildConf, "build", "CGO_ENABLED")
 	goos := confg.Get[string](buildConf, "build", "GOOS")
@@ -175,7 +175,7 @@ func uploadFile(sftpClient *sftp.Client, localFilePath string, remotePath string
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println(localFilePath + " copy file to remote controller finished!")
+	fmt.Println(localFilePath + " copy file to remote server finished!")
 }
 
 func sshConnect(user, password, host string, port int) (*ssh.Client, error) {

@@ -14,10 +14,9 @@ func RegisterUser(content *gin.Context) {
 	nickname := content.PostForm("nickname")
 	password := content.PostForm("password")
 
-	userLogic := logic2.UserLogic{}
 	search := make(map[string]any)
 	search["nickname"] = nickname
-	rep := userLogic.SearchUser(search)
+	rep := logic2.UserLogicInstance.SearchUser(search)
 	if rep.Id > 0 {
 		(&resp.JsonResp{Code: resp.ReSuccess, Message: "当前用户已注册", Body: nil}).Response()
 	}
@@ -43,7 +42,7 @@ func Login(content *gin.Context) {
 		"password": tools.Md5(password, model2.UserPwdSalt),
 	}
 
-	userInfo := logic2.UserLogic{}.SearchUser(s)
+	userInfo := logic2.UserLogicInstance.SearchUser(s)
 	if userInfo.Id <= 0 {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response()
 		content.Abort()
@@ -51,8 +50,7 @@ func Login(content *gin.Context) {
 	}
 	data := make(map[string]interface{})
 
-	tokenLogic := logic2.TokenLogic{}
-	j, userJwt := tokenLogic.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
+	j, userJwt := logic2.TokenLogicInstance.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt

@@ -13,6 +13,12 @@ import (
 type TokenLogic struct {
 }
 
+var TokenLogicInstance TokenLogic
+
+func init() {
+	TokenLogicInstance = TokenLogic{}
+}
+
 func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt) {
 
 	j, userJwt := jwt.CreateJwt(uid, jType, exTime)
