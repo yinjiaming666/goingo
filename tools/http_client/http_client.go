@@ -22,6 +22,10 @@ func (c *Client) SetHeaders(headers map[string]string) {
 	c.headers = headers
 }
 
+func (c *Client) ClearHeader() {
+	c.headers = map[string]string{}
+}
+
 func (c *Client) C() *http.Client {
 	return c.cli
 }
@@ -36,6 +40,10 @@ func (c *Client) Data() map[string]any {
 
 func (c *Client) SetData(data map[string]any) {
 	c.data = data
+}
+
+func (c *Client) ClearData() {
+	c.data = map[string]any{}
 }
 
 func (c *Client) Domain() string {
@@ -75,6 +83,7 @@ func (c *Client) Get(path string) (error, []byte) {
 		return err, nil
 	}
 	defer func(Body io.ReadCloser) {
+		c.ClearData()
 		err := Body.Close()
 		if err != nil {
 			fmt.Println("http client close fail")
@@ -116,6 +125,7 @@ func (c *Client) Post(path string) (error, []byte) {
 		return err, nil
 	}
 	defer func(Body io.ReadCloser) {
+		c.ClearData()
 		err := Body.Close()
 		if err != nil {
 			fmt.Println("http client close fail")
