@@ -59,9 +59,9 @@ func Login(content *gin.Context) {
 }
 
 func LoadUser(content *gin.Context) {
-	user, ok := content.Get(string(jwt.IndexJwtType))
-	if !ok {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "未查询到用户", Body: nil}).Response()
+	user, err := logic2.ContextLogicInstance.GetIndexUserInfo()
+	if err != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: err.Error(), Body: nil}).Response()
 	}
 	(&resp.JsonResp{Code: resp.ReSuccess, Message: "success", Body: map[string]any{"user": user}}).Response()
 }
