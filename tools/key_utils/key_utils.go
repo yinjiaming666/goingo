@@ -16,3 +16,7 @@ func (k *KeyUtils) GetUserKey(uid uint) string {
 func (k *KeyUtils) GetTokenKey(token string) string {
 	return k.BaseName + ":token:" + token
 }
+
+func (k *KeyUtils) GetUidToken(uid int) string {
+	return k.BaseName + ":uid-token:" + strconv.Itoa(uid)
+}
