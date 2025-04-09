@@ -1,10 +1,12 @@
 package http_client
 
 import (
+	"app/tools/conv"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 )
 
 type Client struct {
@@ -54,17 +56,16 @@ func (c *Client) SetDomain(domain string) {
 	c.domain = domain
 }
 
-func (c *Client) Get(path string) (error, []byte) {
+func (c *Client) Get(path string) (error, []byte, int) {
 	var query string
 	if len(c.Data()) > 0 {
 		query = "?"
 		for k, v := range c.Data() {
-			if value, ok := v.(string); ok {
-				if query != "?" {
-					query = query + "&" + k + "=" + value
-				} else {
-					query = query + k + "=" + value
-				}
+			val, _ := conv.Conv[string](v)
+			if query != "?" {
+				query = query + "&" + k + "=" + val
+			} else {
+				query = query + k + "=" + val
 			}
 		}
 		path += query
@@ -80,7 +81,7 @@ func (c *Client) Get(path string) (error, []byte) {
 	resp, err := c.cli.Do(req)
 	if err != nil {
 		fmt.Println("Request failed:", err)
-		return err, nil
+		return err, nil, 0
 	}
 	defer func(Body io.ReadCloser) {
 		c.ClearData()
@@ -93,27 +94,14 @@ func (c *Client) Get(path string) (error, []byte) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Read body failed:", err)
-		return err, nil
+		return err, nil, 0
 	}
-	return nil, body
+	return nil, body, resp.StatusCode
 }
 
-func (c *Client) Post(path string) (error, []byte) {
-	var query string
-	if len(c.Data()) > 0 {
-		query = ""
-		for k, v := range c.Data() {
-			if value, ok := v.(string); ok {
-				if query != "" {
-					query = query + "&" + k + "=" + value
-				} else {
-					query = query + k + "=" + value
-				}
-			}
-		}
-	}
-
-	req, _ := http.NewRequest("POST", c.domain+path, strings.NewReader(query))
+func (c *Client) Post(path string) (error, []byte, int) {
+	d := c.formatData()
+	req, _ := http.NewRequest("POST", c.domain+path, d)
 	if len(c.Headers()) > 0 {
 		for k, v := range c.Headers() {
 			req.Header.Add(k, v)
@@ -122,7 +110,7 @@ func (c *Client) Post(path string) (error, []byte) {
 	resp, err := c.cli.Do(req)
 	if err != nil {
 		fmt.Println("Request failed:", err)
-		return err, nil
+		return err, nil, 0
 	}
 	defer func(Body io.ReadCloser) {
 		c.ClearData()
@@ -135,7 +123,37 @@ func (c *Client) Post(path string) (error, []byte) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Read body failed:", err)
-		return err, nil
+		return err, nil, 0
 	}
-	return nil, body
+	return nil, body, resp.StatusCode
+}
+
+func (c *Client) formatData() *bytes.Buffer {
+	contentType, ok := c.Headers()["Content-Type"]
+	if !ok {
+		panic("empty content type")
+	}
+	if contentType == "application/json" {
+		str, err := json.Marshal(c.Data())
+		if err != nil {
+			panic("json.Marshal failed:" + err.Error())
+		}
+		return bytes.NewBuffer(str)
+	} else {
+		// form-data
+		var query string
+		if len(c.Data()) > 0 {
+			query = ""
+			for k, v := range c.Data() {
+				val, _ := conv.Conv[string](v)
+				if query != "" {
+					query = query + "&" + k + "=" + val
+				} else {
+					query = query + k + "=" + val
+				}
+			}
+		}
+		return bytes.NewBuffer([]byte(query))
+	}
+
 }
