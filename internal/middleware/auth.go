@@ -16,7 +16,10 @@ func CheckJwt() func(c *gin.Context) {
 		if token == "" {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "请上传jwt", Body: nil}).Response()
 		}
-		data := logic2.TokenLogicInstance.CheckJwt(token)
+		data, err := logic2.TokenLogicInstance.CheckJwt(token)
+		if err != nil {
+			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "jwt解析失败", Body: map[string]any{"err": err.Error()}}).Response()
+		}
 
 		switch data.Type {
 		case jwt.AdminJwtType:

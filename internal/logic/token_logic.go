@@ -6,11 +6,18 @@ import (
 	"app/tools/jwt"
 	"app/tools/resp"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
 
 type TokenLogic struct {
+}
+
+var TokenLogicInstance *TokenLogic
+
+func init() {
+	TokenLogicInstance = &TokenLogic{}
 }
 
 func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt) {
@@ -53,20 +60,20 @@ func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (stri
 	return j, userJwt
 }
 
-func (tl *TokenLogic) CheckJwt(j string) *jwt.UserJwt {
+func (tl *TokenLogic) CheckJwt(j string) (*jwt.UserJwt, error) {
 	userJwt, err := jwt.ParseJwt(j)
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "jwt 解析失败", Body: nil}).Response()
+		return nil, err
 	}
 
 	cacheKey := model2.KeyUtils.GetTokenKey(userJwt.Token)
 	r, err := model2.RedisClient.HGetAll(context.Background(), cacheKey).Result()
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "查询失败", Body: nil}).Response()
+		return nil, err
 	}
 	i, ok := r["uid"]
 	if !ok {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "非法的 jwt", Body: nil}).Response()
+		return nil, errors.New("账户已经在其他终端上登录")
 	}
 
 	uid, _ := conv.Conv[uint](i)
@@ -74,11 +81,11 @@ func (tl *TokenLogic) CheckJwt(j string) *jwt.UserJwt {
 	fmt.Println(userJwt)
 	fmt.Println(uid)
 	if uid != userJwt.Uid || r["token"] != userJwt.Token || r["type"] != string(userJwt.Type) {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "非法的 jwt [1]", Body: nil}).Response()
+		return nil, errors.New("账户已经在其他终端上登录[1]")
 	}
 
 	if userJwt.ExpireTime < time.Now().Unix() {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "token 过期", Body: nil}).Response()
 	}
-	return userJwt
+	return userJwt, nil
 }
