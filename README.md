@@ -25,7 +25,7 @@
 ├── config              // 项目配置文件
 │   ├── dev.ini         // 开发环境
 │   ├── prod.ini        // 测试环境
-│   └── server.ini      // 服务器信息
+│   └── deploy.ini      // 打包配置
 ├── deploy              // 打包上传到正式环境
 │   ├── deploy.go
 │   ├── deploy.sh
@@ -36,7 +36,7 @@
 │   ├── model           // 模型
 │   ├── router          // 路由
 │   └── server          // 接口
-│   └── global.go       // 存放全局变量
+│   └── global.go       // 存放全局变量和常量
 ├── log                 // 运行日志
 ├── main.go             // 入口文件
 └── tools               // 通用工具

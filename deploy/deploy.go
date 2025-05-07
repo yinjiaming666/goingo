@@ -16,20 +16,15 @@ import (
 )
 
 func main() {
-	serverConf := (&confg.Config{
-		Path:     "../config",
-		FileName: "server",
-	}).Init()
-
 	buildConf := (&confg.Config{
 		Path:     "../config",
-		FileName: "build",
+		FileName: "deploy",
 	}).Init()
 
-	proName := confg.Get[string](serverConf, "server", "pro_name")
-	userName := confg.Get[string](serverConf, "server", "username")
-	password := confg.Get[string](serverConf, "server", "password")
-	ip := confg.Get[string](serverConf, "server", "ip")
+	proName := confg.Get[string](buildConf, "server", "pro_name")
+	userName := confg.Get[string](buildConf, "server", "username")
+	password := confg.Get[string](buildConf, "server", "password")
+	ip := confg.Get[string](buildConf, "server", "ip")
 
 	cgo := confg.Get[string](buildConf, "build", "CGO_ENABLED")
 	goos := confg.Get[string](buildConf, "build", "GOOS")
