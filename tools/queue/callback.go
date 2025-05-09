@@ -13,5 +13,5 @@ type CallbackResult struct {
 	Err      error
 	Msg      string
 	Code     int
-	BackData interface{}
+	BackData any
 }

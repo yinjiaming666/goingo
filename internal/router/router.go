@@ -1,7 +1,7 @@
 package router
 
 import (
-	global "app/internal"
+	"app/internal/global"
 	middleware2 "app/internal/middleware"
 	"app/tools/logger"
 	"fmt"

@@ -4,6 +4,7 @@ import (
 	"app/tools/logger"
 	"app/tools/random"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"strconv"
@@ -518,13 +519,17 @@ func StreamType(stream Stream) SType {
 	}
 }
 
-func Push(queueName, callback string, data map[string]interface{}) (string, error) {
+func Push(queueName, callback string, data any) (string, error) {
 	stream := streamList[string(Normal)+"-"+queueName]
+	marshal, err2 := json.Marshal(data)
+	if err2 != nil {
+		return "", err2
+	}
 	var msg = Msg{
 		C:            callback,
 		MsgType:      Normal,
 		CallbackName: callback,
-		Data:         data,
+		Data:         string(marshal),
 	}
 	var b = &redis.XAddArgs{
 		Stream: stream.FullName(),
@@ -548,7 +553,12 @@ func Push(queueName, callback string, data map[string]interface{}) (string, erro
 	return result, err
 }
 
-func PushDelay(queueName, callback string, data map[string]any, second int) (int64, error) {
+func PushDelay(queueName, callback string, data any, second int) (int64, error) {
+	marshal, err2 := json.Marshal(data)
+	if err2 != nil {
+		return 0, err2
+	}
+
 	var score int64
 	score = time.Now().Unix() + int64(second)
 
@@ -556,7 +566,7 @@ func PushDelay(queueName, callback string, data map[string]any, second int) (int
 		C:            callback,
 		MsgType:      Delay,
 		CallbackName: callback,
-		Data:         data,
+		Data:         string(marshal),
 		Id:           strconv.FormatInt(score, 10) + "-" + strconv.Itoa(random.Number(10000, 99999)),
 	}
 	stream := streamList[string(Delay)+"-"+queueName]

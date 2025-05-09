@@ -2,6 +2,7 @@ package model
 
 import (
 	"app/tools"
+	"app/tools/beanstalkd"
 	"app/tools/logger"
 	"app/tools/resp"
 	"context"
@@ -47,9 +48,17 @@ func (user *User) SetUser() {
 		user.Password = tools.Md5(user.Password, UserPwdSalt)
 	}
 	user.SaveCache()
-	go func() {
-		Db().Select("nickname", "password", "age", "sex", "token", "status").Model(user).Updates(user)
-	}()
+
+	_, err := beanstalkd.Instance.Push(&beanstalkd.Msg{
+		C:    beanstalkd.CDefault,
+		M:    beanstalkd.MSaveUser,
+		Data: user,
+	}, 0)
+
+	if err != nil {
+		logger.Error("push beanstalkd SaveUser err", "err", err.Error())
+		return
+	}
 }
 
 func (user *User) SaveCache() {

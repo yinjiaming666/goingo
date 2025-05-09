@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	global "app/internal"
+	"app/internal/global"
 	"app/tools/conv"
 	"app/tools/resp"
 	"github.com/gin-gonic/gin"

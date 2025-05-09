@@ -10,7 +10,7 @@ type Msg struct {
 	CallbackName string
 	Id           string
 	MsgType      SType
-	Data         map[string]interface{}
+	Data         string // json 字符串
 }
 
 func (s Msg) MarshalBinary() ([]byte, error) {

@@ -1,7 +1,7 @@
 package model
 
 import (
-	global "app/internal"
+	"app/internal/global"
 	"app/tools/key_utils"
 	"app/tools/logger"
 	"context"
