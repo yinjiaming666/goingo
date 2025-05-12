@@ -1,11 +1,12 @@
 package main
 
 import (
+	_ "app/internal/callback"
 	"app/internal/global"
 	"app/internal/model"
 	"app/internal/router"
-	"app/tools/beanstalkd"
-	_ "app/tools/beanstalkd"
+	"app/tools/beanstalkd/consumer"
+	"app/tools/beanstalkd/producer"
 	confg "app/tools/config"
 	"app/tools/logger"
 	"encoding/binary"
@@ -90,25 +91,30 @@ func main() {
 		logger.System("START INIT TABLE ====================")
 		m := new(model.MysqlBaseModel)
 		m.SetTableComment("用户表").CreateTable(model.User{})
-		m.CreateTable(model.Token{})
-		m.CreateTable(model.Article{})
-		m.CreateTable(model.Admin{})
-		m.CreateTable(model.Cate{})
-		m.CreateTable(model.Roles{})
+		m.SetTableComment("token").CreateTable(model.Token{})
+		m.SetTableComment("article").CreateTable(model.Article{})
+		m.SetTableComment("").CreateTable(model.Admin{})
+		m.SetTableComment("").CreateTable(model.Cate{})
+		m.SetTableComment("").CreateTable(model.Roles{})
 		m.SetTableComment("角色表").CreateTable(model.RolesGroup{})
 		logger.System("END INIT TABLE ====================")
 	}
 
 	beanstalkdIp := confg.Get[string](conf, "beanstalkd", "ip")
 	beanstalkdPort := confg.Get[string](conf, "beanstalkd", "port")
-	fmt.Println(beanstalkdIp, beanstalkdPort)
-	err = beanstalkd.Instance.Init(beanstalkdIp, beanstalkdPort)
+
+	err = producer.Instance.Init(beanstalkdIp, beanstalkdPort, "common")
 	if err != nil {
-		logger.Error("beanstalkd Init err:", "err", err)
+		logger.Error("beanstalkd producer init err:", "err", err)
 		return
 	}
 
-	go beanstalkd.Instance.ReserveLoop()
+	err = consumer.Instance.Init(beanstalkdIp, beanstalkdPort, []string{"common"})
+	if err != nil {
+		logger.Error("beanstalkd consumer init err:", "err", err)
+		return
+	}
+	go consumer.Instance.ReserveLoop()
 
 	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)

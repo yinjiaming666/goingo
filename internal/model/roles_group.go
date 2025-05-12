@@ -11,7 +11,7 @@ type RolesGroup struct {
 	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
 	AdminId         uint           `json:"admin_id" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0; comment: 创建人id"`
 	RolesIds        string         `json:"roles_ids" gorm:"type:VARCHAR(1200) NOT NULL; default:''; comment: 权限id(逗号分隔)"`
-	Pid             uint           `json:"pid" gorm:"type:INT(8) UNSIGNED NOT NULL; default:''; comment: 上级角色组"`
+	Pid             uint           `json:"pid" gorm:"type:INT(8) UNSIGNED NOT NULL; default:0; comment: 上级角色组"`
 }
 
 type RolesGroupIds struct {

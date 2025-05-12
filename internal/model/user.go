@@ -2,7 +2,6 @@ package model
 
 import (
 	"app/tools"
-	"app/tools/beanstalkd"
 	"app/tools/logger"
 	"app/tools/resp"
 	"context"
@@ -49,11 +48,11 @@ func (user *User) SetUser() {
 	}
 	user.SaveCache()
 
-	_, err := beanstalkd.Instance.Push(&beanstalkd.Msg{
-		C:    beanstalkd.CDefault,
-		M:    beanstalkd.MSaveUser,
-		Data: user,
-	}, 0)
+	//_, err := producer.Instance.Push(&beanstalkdMsg.Message{
+	//	C:    beanstalkdMsg.CDefault,
+	//	M:    beanstalkdMsg.MSaveUser,
+	//	Data: user,
+	//}, 0)
 
 	if err != nil {
 		logger.Error("push beanstalkd SaveUser err", "err", err.Error())
