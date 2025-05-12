@@ -103,18 +103,20 @@ func main() {
 	beanstalkdIp := confg.Get[string](conf, "beanstalkd", "ip")
 	beanstalkdPort := confg.Get[string](conf, "beanstalkd", "port")
 
-	err = producer.Instance.Init(beanstalkdIp, beanstalkdPort, "common")
-	if err != nil {
-		logger.Error("beanstalkd producer init err:", "err", err)
-		return
-	}
+	if beanstalkdIp != "" && beanstalkdPort != "" {
+		err = producer.Instance.Init(beanstalkdIp, beanstalkdPort, "common")
+		if err != nil {
+			logger.Error("beanstalkd producer init err:", "err", err)
+			return
+		}
 
-	err = consumer.Instance.Init(beanstalkdIp, beanstalkdPort, []string{"common"})
-	if err != nil {
-		logger.Error("beanstalkd consumer init err:", "err", err)
-		return
+		err = consumer.Instance.Init(beanstalkdIp, beanstalkdPort, []string{"common"})
+		if err != nil {
+			logger.Error("beanstalkd consumer init err:", "err", err)
+			return
+		}
+		go consumer.Instance.ReserveLoop()
 	}
-	go consumer.Instance.ReserveLoop()
 
 	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)
