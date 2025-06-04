@@ -3,6 +3,7 @@ package middleware
 import (
 	"app/tools/logger"
 	"app/tools/resp"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 )
@@ -15,10 +16,11 @@ func RespMiddleware() gin.HandlerFunc {
 				switch e.(type) {
 				case resp.Response:
 					// 捕获响应
+					r, _ := json.Marshal(e.(resp.Response).GetBody())
 					logger.System("Response", "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm, "res", map[string]any{
 						"code": e.(resp.Response).GetCode(),
 						"msg":  e.(resp.Response).GetMsg(),
-						"data": e.(resp.Response).GetBody(),
+						"data": string(r),
 					})
 					resp.HandelResponse(e.(resp.Response), c)
 					return
