@@ -4,6 +4,7 @@ import (
 	"app/internal/global"
 	"app/tools/conv"
 	"app/tools/resp"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,8 +17,10 @@ func FilterIp(allowIp []string) func(c *gin.Context) {
 		}
 
 		ip := c.ClientIP()
-		if ip == "::1" || ip == "localhost" {
-			ip = global.LocalIp
+		if ip == "::1" || ip == "localhost" || ip == global.LocalIp || ip == "127.0.0.1" {
+			// 内网请求
+			c.Next()
+			return
 		}
 		if k, _ := conv.InSlice(allowIp, ip); k < 0 {
 			(&resp.JsonResp{Code: resp.ReIllegalIp, Message: "illegal IP", Body: map[string]any{"ip": ip}}).Response()
