@@ -5,8 +5,10 @@ import (
 	"app/tools/logger"
 	"encoding/json"
 	"errors"
-	"github.com/beanstalkd/go-beanstalk"
+	"fmt"
 	"time"
+
+	"github.com/beanstalkd/go-beanstalk"
 )
 
 type CallbackFunc func(msg *message.Message)
@@ -41,47 +43,51 @@ func (b *BeanstalkdConsumer) Init(ip, port string, TubeName []string) error {
 	return nil
 }
 
-func (b *BeanstalkdConsumer) ReserveLoop() {
+func (b *BeanstalkdConsumer) ReserveLoop(index int) {
 	if len(b.TubeName) > 0 {
 		tubeSet := beanstalk.NewTubeSet(b.client, b.TubeName...)
 		for {
+			logger.Debug("consumer ReserveLoop running", "index", index)
 			id, body, err := tubeSet.Reserve(1 * time.Second)
 			if err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			logger.Debug("beanstalkd tube reserve:", "id", id, "body", string(body))
+			logger.Debug(fmt.Sprintf("beanstalkd %d tube reserve:", index), "id", id, "body", string(body))
 
 			data := &message.Message{}
 			err = json.Unmarshal(body, data)
 			data.JobId = id
 			if err != nil {
-				logger.Error("beanstalkd reserve Unmarshal err:", "err", err)
+				logger.Error(fmt.Sprintf("beanstalkd %d reserve Unmarshal err:", index), "err", err)
 				continue
 			} else {
 				// 执行回调
 				(b.Callback)(data)
 			}
+			time.Sleep(500 * time.Millisecond)
 		}
 	} else {
 		for {
+			logger.Debug("consumer ReserveLoop running", "index", index)
 			id, body, err := b.client.Reserve(1 * time.Second)
 			if err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			logger.Debug("beanstalkd tube reserve:", "id", id, "body", string(body))
+			logger.Debug(fmt.Sprintf("beanstalkd %d tube reserve:", index), "id", id, "body", string(body))
 
 			data := &message.Message{}
 			err = json.Unmarshal(body, data)
 			data.JobId = id
 			if err != nil {
-				logger.Error("beanstalkd tube reserve Unmarshal err:", "err", err)
+				logger.Error("beanstalkd %d reserve Unmarshal err:", "err", err)
 				continue
 			} else {
 				// 执行回调
 				(b.Callback)(data)
 			}
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 }

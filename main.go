@@ -5,7 +5,6 @@ import (
 	"app/internal/global"
 	"app/internal/model"
 	"app/internal/router"
-	"app/tools/beanstalkd/consumer"
 	"app/tools/beanstalkd/producer"
 	confg "app/tools/config"
 	"app/tools/logger"
@@ -109,13 +108,6 @@ func main() {
 			logger.Error("beanstalkd producer init err:", "err", err)
 			return
 		}
-
-		err = consumer.Instance.Init(beanstalkdIp, beanstalkdPort, []string{"common"})
-		if err != nil {
-			logger.Error("beanstalkd consumer init err:", "err", err)
-			return
-		}
-		go consumer.Instance.ReserveLoop()
 	}
 
 	port := confg.Get[string](conf, "server", "port")
