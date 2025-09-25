@@ -18,7 +18,8 @@ func (u UserLogic) LoadUser(uid uint) *model2.User {
 	userModel := &model2.User{Id: uid}
 	userModel.GetCache()
 	if userModel.Id == 0 {
-		userModel.GetUserInfo()
+		userModel.Id = uid
+		userModel.GetUserInfo(true)
 	}
 	return userModel
 }
@@ -31,6 +32,6 @@ func (u UserLogic) SearchUser(search map[string]interface{}) *model2.User {
 			user.Nickname = v
 		}
 	}
-	user.GetUserInfo()
+	user.GetUserInfo(false)
 	return user
 }

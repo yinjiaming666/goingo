@@ -5,10 +5,10 @@ import (
 	"app/tools/logger"
 	"app/tools/resp"
 	"context"
-	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type User struct {
@@ -25,8 +25,11 @@ type User struct {
 	Money           float64        `redis:"Money" json:"money" gorm:"type:DECIMAL(10,2) UNSIGNED NOT NULL;default:0.00"`
 }
 
-func (user *User) GetUserInfo() {
+func (user *User) GetUserInfo(writeCache bool) {
 	Db().Where(user).First(user)
+	if writeCache {
+		user.SaveCache()
+	}
 }
 
 func (user *User) DoRegister() uint {
@@ -82,11 +85,16 @@ func (user *User) SaveCache() {
 
 func (user *User) GetCache() {
 	key := KeyUtils.GetUserKey(user.Id)
-	if err := RedisClient.HGetAll(context.Background(), key).Scan(user); err != nil {
-		if errors.Is(err, redis.Nil) {
-			user.Id = 0
-			return
-		}
+	val := RedisClient.HGetAll(context.Background(), key)
+	if val.Err() != nil {
+		panic(err)
+	}
+	if val.Val() != nil || len(val.Val()) == 0 {
+		// 缓存未命中
+		user.Id = 0
+		return
+	}
+	if err := val.Scan(user); err != nil {
 		panic(err)
 	}
 }
