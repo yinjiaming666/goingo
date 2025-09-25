@@ -3,12 +3,13 @@ package model
 import (
 	sysLog "app/tools/logger"
 	"fmt"
+	"os"
+	"time"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-	"os"
-	"time"
 )
 
 var db *gorm.DB
@@ -66,4 +67,22 @@ func InitDb(c *DbConf) {
 
 func Db() *gorm.DB {
 	return db.Debug()
+}
+
+func Paginate(p *Pagination) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if p.Page <= 0 {
+			p.Page = 1
+		}
+		if p.PageSize <= 0 {
+			p.PageSize = 20
+		}
+		offset := (p.Page - 1) * p.PageSize
+		return Db().Offset(offset).Limit(p.PageSize)
+	}
+}
+
+type Pagination struct {
+	Page     int
+	PageSize int
 }
