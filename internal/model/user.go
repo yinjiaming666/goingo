@@ -5,10 +5,12 @@ import (
 	"app/tools/logger"
 	"app/tools/resp"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -26,8 +28,11 @@ type User struct {
 }
 
 func (user *User) GetUserInfo(writeCache bool) {
-	Db().Where(user).First(user)
-	if writeCache {
+	tx := Db().Where(user).First(user)
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		user.Id = 0
+	}
+	if writeCache && user.Id > 0 {
 		user.SaveCache()
 	}
 }
