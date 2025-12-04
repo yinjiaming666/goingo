@@ -18,7 +18,6 @@ var AccessLogFilePath = "log/access.log"
 
 func Init() {
 	_ = os.Mkdir("log", os.ModePerm)
-	systemFileHandel, _ = os.OpenFile("log/system.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	var err error
 
 	date := time.Now().Format("2006-01-02")
@@ -27,6 +26,20 @@ func Init() {
 	initDir := func(date string, yesterday string, isFirst bool) {
 		today = date
 		_ = os.Mkdir("log/"+date, os.ModePerm)
+
+		if systemFileHandel != nil {
+			err := systemFileHandel.Close()
+			if err != nil {
+				fmt.Println("日志服务错误【systemFileHandel】" + err.Error())
+				return
+			}
+		}
+		systemFileName := "log/" + date + "/system.log"
+		systemFileHandel, err = os.OpenFile(systemFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+		if err != nil {
+			fmt.Println("日志服务错误【systemFileHandel】" + err.Error())
+			return
+		}
 
 		if infoFileHandel != nil {
 			err := infoFileHandel.Close()
