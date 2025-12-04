@@ -5,14 +5,15 @@ package main
 import (
 	confg "app/tools/config"
 	"fmt"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"time"
+
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 func main() {

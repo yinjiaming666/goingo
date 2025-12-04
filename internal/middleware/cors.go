@@ -2,8 +2,9 @@ package middleware
 
 import (
 	logic2 "app/internal/logic"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func CORSMiddleware() gin.HandlerFunc {

@@ -4,8 +4,9 @@ import (
 	"app/tools/beanstalkd/message"
 	"encoding/json"
 	"errors"
-	"github.com/beanstalkd/go-beanstalk"
 	"time"
+
+	"github.com/beanstalkd/go-beanstalk"
 )
 
 // BeanstalkdProducer 生产者

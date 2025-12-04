@@ -5,10 +5,11 @@ import (
 	middleware2 "app/internal/middleware"
 	"app/tools/logger"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"os"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type RouteGateway interface {

@@ -3,8 +3,9 @@ package jwt
 import (
 	sysLog "app/tools/logger"
 	"app/tools/random"
-	"github.com/golang-jwt/jwt"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type JType string

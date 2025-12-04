@@ -3,6 +3,7 @@ package router
 import (
 	"app/internal/controller/index"
 	"app/internal/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 

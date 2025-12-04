@@ -9,13 +9,13 @@ import (
 // Roles 菜单表
 type Roles struct {
 	*MysqlBaseModel `gorm:"-:all"` // -:all 无读写迁移权限，该字段不在数据库中
-	Id              uint      `json:"id" gorm:"primaryKey; type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
-	Component       string    `json:"component" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	Meta            RolesMeta `json:"meta" gorm:"type:json; default:NULL"`
-	Name            string    `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	Path            string    `json:"path" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
-	Pid             uint      `json:"pid" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0"`
-	Type            uint      `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL; default:0"` // 是否为菜单
+	Id              uint           `json:"id" gorm:"primaryKey; type:INT(8) UNSIGNED NOT NULL AUTO_INCREMENT"`
+	Component       string         `json:"component" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Meta            RolesMeta      `json:"meta" gorm:"type:json; default:NULL"`
+	Name            string         `json:"name" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Path            string         `json:"path" gorm:"type:VARCHAR(1200) NOT NULL; default:''"`
+	Pid             uint           `json:"pid" gorm:"type:INT(11) UNSIGNED NOT NULL; default:0"`
+	Type            uint           `json:"type" gorm:"type:TINYINT(8) UNSIGNED NOT NULL; default:0"` // 是否为菜单
 }
 
 type RolesFormat struct {

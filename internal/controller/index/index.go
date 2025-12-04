@@ -3,8 +3,9 @@ package index_api
 import (
 	"app/internal/model"
 	"app/tools/resp"
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // GetCateList 分类列表

@@ -3,9 +3,7 @@ package main
 import (
 	_ "app/internal/callback"
 	"app/internal/global"
-	"app/internal/model"
 	"app/internal/router"
-	"app/tools/beanstalkd/producer"
 	confg "app/tools/config"
 	"app/tools/logger"
 	"encoding/binary"
@@ -73,42 +71,42 @@ func main() {
 
 	logger.Init()
 
-	model.InitDb(&model.DbConf{
-		UserName: confg.Get[string](conf, "mysql", "username"),
-		Password: confg.Get[string](conf, "mysql", "password"),
-		Ip:       confg.Get[string](conf, "mysql", "ip"),
-		Port:     confg.Get[string](conf, "mysql", "port"),
-		DbName:   confg.Get[string](conf, "mysql", "db_name"),
-	})
-
-	model.InitRedis(&model.RedisConf{
-		Ip:   confg.Get[string](conf, "redis", "ip"),
-		Port: confg.Get[string](conf, "redis", "port"),
-	})
-
-	if global.InitDb == "true" {
-		logger.System("START INIT TABLE ====================")
-		m := new(model.MysqlBaseModel)
-		m.SetTableComment("用户表").CreateTable(model.User{})
-		m.SetTableComment("token").CreateTable(model.Token{})
-		m.SetTableComment("article").CreateTable(model.Article{})
-		m.SetTableComment("").CreateTable(model.Admin{})
-		m.SetTableComment("").CreateTable(model.Cate{})
-		m.SetTableComment("").CreateTable(model.Roles{})
-		m.SetTableComment("角色表").CreateTable(model.RolesGroup{})
-		logger.System("END INIT TABLE ====================")
-	}
-
-	beanstalkdIp := confg.Get[string](conf, "beanstalkd", "ip")
-	beanstalkdPort := confg.Get[string](conf, "beanstalkd", "port")
-
-	if beanstalkdIp != "" && beanstalkdPort != "" {
-		err = producer.Instance.Init(beanstalkdIp, beanstalkdPort, "common")
-		if err != nil {
-			logger.Error("beanstalkd producer init err:", "err", err)
-			return
-		}
-	}
+	//model.InitDb(&model.DbConf{
+	//	UserName: confg.Get[string](conf, "mysql", "username"),
+	//	Password: confg.Get[string](conf, "mysql", "password"),
+	//	Ip:       confg.Get[string](conf, "mysql", "ip"),
+	//	Port:     confg.Get[string](conf, "mysql", "port"),
+	//	DbName:   confg.Get[string](conf, "mysql", "db_name"),
+	//})
+	//
+	//model.InitRedis(&model.RedisConf{
+	//	Ip:   confg.Get[string](conf, "redis", "ip"),
+	//	Port: confg.Get[string](conf, "redis", "port"),
+	//})
+	//
+	//if global.InitDb == "true" {
+	//	logger.System("START INIT TABLE ====================")
+	//	m := new(model.MysqlBaseModel)
+	//	m.SetTableComment("用户表").CreateTable(model.User{})
+	//	m.SetTableComment("token").CreateTable(model.Token{})
+	//	m.SetTableComment("article").CreateTable(model.Article{})
+	//	m.SetTableComment("").CreateTable(model.Admin{})
+	//	m.SetTableComment("").CreateTable(model.Cate{})
+	//	m.SetTableComment("").CreateTable(model.Roles{})
+	//	m.SetTableComment("角色表").CreateTable(model.RolesGroup{})
+	//	logger.System("END INIT TABLE ====================")
+	//}
+	//
+	//beanstalkdIp := confg.Get[string](conf, "beanstalkd", "ip")
+	//beanstalkdPort := confg.Get[string](conf, "beanstalkd", "port")
+	//
+	//if beanstalkdIp != "" && beanstalkdPort != "" {
+	//	err = producer.Instance.Init(beanstalkdIp, beanstalkdPort, "common")
+	//	if err != nil {
+	//		logger.Error("beanstalkd producer init err:", "err", err)
+	//		return
+	//	}
+	//}
 
 	port := confg.Get[string](conf, "server", "port")
 	router.InitRouter(port)

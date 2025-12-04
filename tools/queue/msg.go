@@ -2,6 +2,7 @@ package queue
 
 import (
 	"encoding/json"
+
 	"github.com/redis/go-redis/v9"
 )
 

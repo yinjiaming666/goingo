@@ -3,6 +3,7 @@ package logic
 import (
 	"app/internal/model"
 	"app/tools/jwt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
