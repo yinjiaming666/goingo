@@ -1,7 +1,9 @@
 package index_api
 
 import (
-	logic2 "app/internal/logic"
+	"app/internal/logic/context"
+	"app/internal/logic/token"
+	logic2 "app/internal/logic/user"
 	model2 "app/internal/model"
 	"app/tools"
 	"app/tools/jwt"
@@ -17,7 +19,7 @@ func RegisterUser(content *gin.Context) {
 
 	search := make(map[string]any)
 	search["nickname"] = nickname
-	rep := logic2.UserLogicInstance.SearchUser(search)
+	rep := logic2.SearchUser(search)
 	if rep.Id > 0 {
 		(&resp.JsonResp{Code: resp.ReSuccess, Message: "当前用户已注册", Body: nil}).Response()
 	}
@@ -43,7 +45,7 @@ func Login(content *gin.Context) {
 		"password": tools.Md5(password, model2.UserPwdSalt),
 	}
 
-	userInfo := logic2.UserLogicInstance.SearchUser(s)
+	userInfo := logic2.SearchUser(s)
 	if userInfo.Id <= 0 {
 		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response()
 		content.Abort()
@@ -51,7 +53,7 @@ func Login(content *gin.Context) {
 	}
 	data := make(map[string]interface{})
 
-	j, userJwt := logic2.TokenLogicInstance.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
+	j, userJwt := token.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt
@@ -60,7 +62,7 @@ func Login(content *gin.Context) {
 }
 
 func LoadUser(content *gin.Context) {
-	user, err := logic2.ContextLogicInstance.GetIndexUserInfo()
+	user, err := context.GetIndexUserInfo(content)
 	if err != nil {
 		(&resp.JsonResp{Code: resp.ReFail, Message: err.Error(), Body: nil}).Response()
 	}

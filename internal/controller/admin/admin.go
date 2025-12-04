@@ -2,6 +2,7 @@ package admin_api
 
 import (
 	"app/internal/logic"
+	"app/internal/logic/token"
 	model2 "app/internal/model"
 	"app/tools"
 	"app/tools/conv"
@@ -110,7 +111,7 @@ func AdminLogin(content *gin.Context) {
 	}
 
 	data := make(map[string]interface{})
-	j, userJwt := logic.TokenLogicInstance.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
+	j, userJwt := token.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt

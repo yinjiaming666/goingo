@@ -1,4 +1,4 @@
-package logic
+package token
 
 import (
 	model2 "app/internal/model"
@@ -11,19 +11,8 @@ import (
 	"time"
 )
 
-type TokenLogic struct {
-}
-
-var TokenLogicInstance *TokenLogic
-
-func init() {
-	TokenLogicInstance = &TokenLogic{}
-}
-
-func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt) {
-
+func GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt) {
 	j, userJwt := jwt.CreateJwt(uid, jType, exTime)
-
 	tokenModel := new(model2.Token)
 	tokenModel.Uid = userJwt.Uid
 	tokenModel.Token = userJwt.Token
@@ -60,7 +49,7 @@ func (tl *TokenLogic) GenerateJwt(uid uint, jType jwt.JType, exTime int64) (stri
 	return j, userJwt
 }
 
-func (tl *TokenLogic) CheckJwt(j string) (*jwt.UserJwt, error) {
+func CheckJwt(j string) (*jwt.UserJwt, error) {
 	userJwt, err := jwt.ParseJwt(j)
 	if err != nil {
 		return nil, err

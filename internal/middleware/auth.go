@@ -2,6 +2,8 @@ package middleware
 
 import (
 	logic2 "app/internal/logic"
+	token2 "app/internal/logic/token"
+	user2 "app/internal/logic/user"
 	"app/internal/model"
 	"app/tools/conv"
 	"app/tools/jwt"
@@ -17,7 +19,7 @@ func CheckJwt() func(c *gin.Context) {
 		if token == "" {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "请上传jwt", Body: nil}).Response()
 		}
-		data, err := logic2.TokenLogicInstance.CheckJwt(token)
+		data, err := token2.CheckJwt(token)
 		if err != nil {
 			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "jwt解析失败", Body: map[string]any{"err": err.Error()}}).Response()
 		}
@@ -44,7 +46,7 @@ func CheckJwt() func(c *gin.Context) {
 			c.Next()
 			break
 		case jwt.IndexJwtType:
-			user := logic2.UserLogicInstance.LoadUser(data.Uid)
+			user := user2.LoadUser(data.Uid)
 			if user.Id <= 0 {
 				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
 			}
