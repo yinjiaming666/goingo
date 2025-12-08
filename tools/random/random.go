@@ -22,12 +22,13 @@ func Str(lens int) string {
 }
 
 func Number(start, end int) int {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if end < start {
 		t := end
 		end = start
 		start = t
 	}
-	return rand.Intn(end-start) + start // (end-start)+start
+	return r.Intn(end-start) + start // (end-start)+start
 }
 
 // RandSlice 随机弹出切片中的元素
