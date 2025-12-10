@@ -16,8 +16,17 @@ var errFileHandel *os.File = nil
 var systemFileHandel *os.File = nil
 var AccessLogFilePath = "log/access.log"
 
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+)
+
 func Init() {
 	_ = os.Mkdir("log", os.ModePerm)
+	systemFileHandel, _ = os.OpenFile("log/system.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	var err error
 
 	date := time.Now().Format("2006-01-02")
@@ -124,7 +133,8 @@ func Trace() string {
 }
 
 func Debug(msg string, append ...any) {
-	fmt.Println("[GOINGO-DEBUG]", msg, append)
+	fmt.Printf("%s[GOINGO-DEBUG]%s ", Blue, Reset)
+	fmt.Println(msg, append)
 	if infoFileHandel != nil {
 		logHandel := slog.New(slog.NewTextHandler(infoFileHandel, nil))
 		slog.SetDefault(logHandel)
@@ -133,16 +143,18 @@ func Debug(msg string, append ...any) {
 }
 
 func System(msg string, append ...any) {
-	fmt.Println("[GOINGO-SYSTEM]", msg, append)
+	fmt.Printf("%s[GOINGO-SYSTEM]%s ", Green, Reset)
+	fmt.Println(msg, append)
 	logHandel := slog.New(slog.NewTextHandler(systemFileHandel, nil))
 	slog.SetDefault(logHandel)
 	slog.Info(msg, append...)
 }
 
 func Error(msg string, appends ...any) {
+	fmt.Printf("%s[GOINGO-ERR]%s ", Red, Reset)
+	fmt.Println(msg, appends)
 	t := Trace()
 	fmt.Println(t)
-	fmt.Println("[GOINGO-ERR]", msg, appends)
 	if errFileHandel != nil {
 		logHandel := slog.New(slog.NewTextHandler(errFileHandel, nil))
 		slog.SetDefault(logHandel)
