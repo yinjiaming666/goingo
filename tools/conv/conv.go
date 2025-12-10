@@ -1200,6 +1200,26 @@ func RemoveSlice[T BuiltinT](a []T, elem T) []T {
 	return a[:j]
 }
 
+// DiffSlice 计算两个切片的差集，返回在slice1中存在但不在slice2中的元素
+// slice1: 被比较的源切片
+// slice2: 用于比较的参考切片
+// 返回值: 包含差集元素的新切片
+func DiffSlice[T comparable](slice1, slice2 []T) []T {
+	// 创建 map 存储 slice2 的元素
+	exist := make(map[T]bool)
+	for _, v := range slice2 {
+		exist[v] = true
+	}
+	// 找出 slice1 中不在 slice2 中的元素
+	var result []T
+	for _, v := range slice1 {
+		if !exist[v] {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
 func Timestamp2Str(timestamp int64) string {
 	if timestamp == 0 {
 		timestamp = time.Now().Unix()
@@ -1229,4 +1249,14 @@ func PostForm[T BuiltinT](ctx *gin.Context, key string) T {
 		logger.Error("PostForm fail", "key", key, "val", v)
 	}
 	return conv
+}
+
+func QueryParam[T BuiltinT](ctx *gin.Context, key string) (T, error) {
+	v := ctx.Query(key)
+	conv, err := Conv[T](v)
+	if err != nil {
+		logger.Error("QueryParam fail", "key", key, "val", v)
+		return conv, err
+	}
+	return conv, nil
 }
