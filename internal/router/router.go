@@ -60,10 +60,10 @@ func InitRouter(port string) {
 	IndexRoute := IndexRoute{group: rr.Group("api/index")}
 	AdminRoute.initRoute()
 	IndexRoute.initRoute()
-
+	logger.System("START SERVER IN " + port)
 	err = r.Run(":" + port)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("START SERVER FAIL", "err", err.Error())
 		return
 	}
 }
