@@ -34,7 +34,8 @@ func SetArticle(content *gin.Context) {
 	}
 
 	article = article.SetArticle()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response(content)
+	return
 }
 
 // DelArticle 删除文章
@@ -44,7 +45,8 @@ func DelArticle(content *gin.Context) {
 		Id: uint(id),
 	}
 	article.DelArticle()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response(content)
+	return
 }
 
 // ArticleList 后台文章列表
@@ -75,20 +77,23 @@ func ArticleList(content *gin.Context) {
 
 	var article model2.ApiArticleList
 	data := article.GetArticleList(search)
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: data}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: data}).Response(content)
+	return
 }
 
 // GetArticleDetail 文章详情
 func GetArticleDetail(content *gin.Context) {
 	id, _ := strconv.Atoi(content.Query("id"))
 	if id <= 0 {
-		(&resp.JsonResp{Code: resp.ReSuccess, Message: "未查询到文章", Body: model2.Article{}}).Response()
+		(&resp.JsonResp{Code: resp.ReSuccess, Message: "未查询到文章", Body: model2.Article{}}).Response(content)
+		return
 	}
 	article := &model2.Article{
 		Id: uint(id),
 	}
 	article = article.GetArticleDetail()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: article}).Response(content)
+	return
 }
 
 // AdminLogin 管理员登录
@@ -97,7 +102,8 @@ func AdminLogin(content *gin.Context) {
 	password := content.PostForm("password")
 
 	if account == "" || password == "" {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "请输入账号密码", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "请输入账号密码", Body: nil}).Response(content)
+		return
 	}
 
 	admin := &model2.Admin{
@@ -107,28 +113,36 @@ func AdminLogin(content *gin.Context) {
 
 	admin = admin.GetAdmin()
 	if admin.Id <= 0 {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "账号密码错误", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "账号密码错误", Body: nil}).Response(content)
+		return
 	}
 
 	data := make(map[string]interface{})
-	j, userJwt := token.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
+	j, userJwt, err := token.GenerateJwt(admin.Id, jwt.AdminJwtType, 0)
+	if err != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "token 生成失败", Body: nil}).Response(content)
+		return
+	}
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt
 	data["user"] = admin
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response(content)
+	return
 }
 
 // GetAdminInfo 获取管理员信息
 func GetAdminInfo(c *gin.Context) {
 	adminId := c.GetUint(string(jwt.AdminJwtType))
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: logic.GetAdminAuth(adminId)}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: logic.GetAdminAuth(adminId)}).Response(c)
+	return
 }
 
 // GetAdminList 获取管理员列表
-func GetAdminList(_ *gin.Context) {
+func GetAdminList(c *gin.Context) {
 	admin := model2.Admin{}
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin.GetList(0)}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: admin.GetList(0)}).Response(c)
+	return
 }
 
 // GetRoles 获取路由
@@ -144,7 +158,8 @@ func GetRoles(c *gin.Context) {
 	m := logic.GetAdminAuth(adminId)
 	auth := logic.GetAdminAuth(m.Id)
 	menus := auth.GetAllRules(tt)
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: menus}).Response(c)
+	return
 }
 
 // SetRoles 设置路由
@@ -185,7 +200,8 @@ func SetRoles(c *gin.Context) {
 	}
 
 	menu = menu.SetRoles()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: menu}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: menu}).Response(c)
+	return
 }
 
 // DelRoles 删除路由
@@ -201,13 +217,15 @@ func DelRoles(c *gin.Context) {
 	}
 	article := &model2.Roles{}
 	article.DelRoles(temp)
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response(c)
+	return
 }
 
 // GetCateList 获取分类列表
-func GetCateList(_ *gin.Context) {
+func GetCateList(c *gin.Context) {
 	list := (new(model2.Cate)).GetCateList()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response(c)
+	return
 }
 
 // SetAdminInfo 更新管理员信息
@@ -240,7 +258,8 @@ func SetAdminInfo(c *gin.Context) {
 	}
 
 	admin.SetAdmin()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "更新成功", Body: admin}).Response(c)
+	return
 }
 
 // DelAdmin 删除管理员
@@ -256,7 +275,8 @@ func DelAdmin(c *gin.Context) {
 	}
 	article := &model2.Admin{}
 	article.DelAdmin(temp)
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "成功", Body: nil}).Response(c)
+	return
 }
 
 // GetRolesGroupList 获取角色组列表
@@ -266,7 +286,8 @@ func GetRolesGroupList(c *gin.Context) {
 		adminId = 0
 	}
 	list := (new(model2.RolesGroup)).GetRolesGroupList(adminId)
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "请求成功", Body: list}).Response(c)
+	return
 }
 
 // SetRolesGroup 设置角色组
@@ -283,7 +304,8 @@ func SetRolesGroup(c *gin.Context) {
 		// 校验是否可以修改该角色组
 		group.GetRolesGroup()
 		if group.AdminId != adminId {
-			(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
+			(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response(c)
+			return
 		}
 	}
 	if pid > 0 {
@@ -293,40 +315,48 @@ func SetRolesGroup(c *gin.Context) {
 		group.Name = name
 	}
 	if rolesIds == "" {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 不能为空", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 不能为空", Body: nil}).Response(c)
+		return
 	}
 	rolesIdsList, err := conv.Explode[uint](",", rolesIds)
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 格式错误", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "roles_ids 格式错误", Body: nil}).Response(c)
+		return
 	}
 	roles := model2.Roles{}
 	getRoles := roles.GetRoles(rolesIdsList, -1)
 	if len(getRoles) != len(rolesIdsList) {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "illegal roles_ids", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "illegal roles_ids", Body: nil}).Response(c)
+		return
 	}
 
 	a := logic.GetAdminAuth(adminId)
 	if a.AuthRules(rolesIdsList) != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此模块", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此模块", Body: nil}).Response(c)
+		return
 	}
 	group.AdminId = adminId
 	rolesGroup := group.SetRolesGroup()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "操作成功", Body: rolesGroup}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "操作成功", Body: rolesGroup}).Response(c)
+	return
 }
 
 // DelRolesGroup 删除角色组
 func DelRolesGroup(c *gin.Context) {
 	groupId := conv.PostForm[uint](c, "group_id")
 	if groupId < 0 {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "缺少参数", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "缺少参数", Body: nil}).Response(c)
+		return
 	}
 	adminId := c.GetUint(string(jwt.AdminJwtType))
 	group := model2.RolesGroup{}
 	group.Id = groupId
 	group.GetRolesGroup()
 	if group.AdminId != adminId {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "无权限操作此角色组", Body: nil}).Response(c)
+		return
 	}
 	group.DelRolesGroup()
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "删除成功", Body: nil}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "删除成功", Body: nil}).Response(c)
+	return
 }

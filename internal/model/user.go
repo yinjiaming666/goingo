@@ -3,7 +3,6 @@ package model
 import (
 	"app/tools"
 	"app/tools/logger"
-	"app/tools/resp"
 	"context"
 	"errors"
 	"fmt"
@@ -37,17 +36,15 @@ func (user *User) GetUserInfo(writeCache bool) {
 	}
 }
 
-func (user *User) DoRegister() uint {
+func (user *User) DoRegister() (uint, error) {
 	user.Password = tools.Md5(user.Password, UserPwdSalt)
 	user.CreateTime = int64(uint(time.Now().Unix()))
 	user.SaveCache()
 	tx := Db().Create(user)
 	if tx.Error != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "错误", Body: map[string]any{
-			"error": tx.Error.Error(),
-		}}).Response()
+		return 0, tx.Error
 	}
-	return user.Id
+	return user.Id, nil
 }
 
 func (user *User) SetUser() {

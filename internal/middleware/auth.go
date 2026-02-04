@@ -17,11 +17,13 @@ func CheckJwt() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		token := c.Request.Header.Get("Token")
 		if token == "" {
-			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "请上传jwt", Body: nil}).Response()
+			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "请上传jwt", Body: nil}).Response(c)
+			return
 		}
 		data, err := token2.CheckJwt(token)
 		if err != nil {
-			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "jwt解析失败", Body: map[string]any{"err": err.Error()}}).Response()
+			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "jwt解析失败", Body: map[string]any{"err": err.Error()}}).Response(c)
+			return
 		}
 
 		switch data.Type {
@@ -31,7 +33,8 @@ func CheckJwt() func(c *gin.Context) {
 			}
 			user = user.GetAdmin()
 			if user.Id <= 0 {
-				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
+				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response(c)
+				return
 			}
 			isSuper := user.IsSuper == 1
 
@@ -48,7 +51,8 @@ func CheckJwt() func(c *gin.Context) {
 		case jwt.IndexJwtType:
 			user := user2.LoadUser(data.Uid)
 			if user.Id <= 0 {
-				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response()
+				(&resp.JsonResp{Code: resp.ReAuthFail, Message: "未查询到用户", Body: nil}).Response(c)
+				return
 			}
 			c.Set(string(jwt.IndexJwtType), user)
 			c.Next()
@@ -68,12 +72,14 @@ func BackendAuth() func(c *gin.Context) {
 		menu := model.Roles{}
 		menu.SearchByPath(c.Request.URL.Path)
 		if menu.Id == 0 {
-			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 未查询到权限", Body: nil}).Response()
+			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 未查询到权限", Body: nil}).Response(c)
+			return
 		}
 		checkId, _ := conv.Conv[uint](menu.Id)
 		has, _ := conv.InSlice[uint](admin.RolesIds, checkId)
 		if has == -1 {
-			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 无权限访问", Body: nil}).Response()
+			(&resp.JsonResp{Code: resp.ReAuthFail, Message: "BackendAuth 无权限访问", Body: nil}).Response(c)
+			return
 		}
 		c.Next()
 	}

@@ -1,6 +1,11 @@
 package resp
 
-import "github.com/gin-gonic/gin"
+import (
+	"app/tools/logger"
+	"encoding/json"
+
+	"github.com/gin-gonic/gin"
+)
 
 type Code uint
 
@@ -16,7 +21,7 @@ type Response interface {
 	GetMsg() string
 	GetHttpCode() int
 	SetHttpCode(code int)
-	Response()
+	Response(c *gin.Context)
 }
 
 type JsonResp struct {
@@ -49,8 +54,13 @@ func (j *JsonResp) SetHttpCode(code int) {
 	j.httpCode = code
 }
 
-func (j *JsonResp) Response() {
-	panic(j)
+func (j *JsonResp) Response(c *gin.Context) {
+	addRespLog(j, c)
+	c.AbortWithStatusJSON(j.GetHttpCode(), gin.H{
+		"code": j.GetCode(),
+		"msg":  j.GetMsg(),
+		"data": j.GetBody(),
+	})
 }
 
 type StringResp struct {
@@ -72,8 +82,10 @@ func (s *StringResp) GetMsg() string {
 	return s.Message
 }
 
-func (s *StringResp) Response() {
-	panic(s)
+func (s *StringResp) Response(ctx *gin.Context) {
+	addRespLog(s, ctx)
+	ctx.String(s.GetHttpCode(), "%s", s.GetBody())
+	ctx.Abort()
 }
 
 func (s *StringResp) GetHttpCode() int {
@@ -106,8 +118,10 @@ func (x *XmlResp) GetMsg() string {
 	return x.Message
 }
 
-func (x *XmlResp) Response() {
-	panic(x)
+func (x *XmlResp) Response(c *gin.Context) {
+	addRespLog(x, c)
+	c.XML(x.GetHttpCode(), x.GetBody())
+	c.Abort()
 }
 
 func (x *XmlResp) GetHttpCode() int {
@@ -121,26 +135,11 @@ func (x *XmlResp) SetHttpCode(code int) {
 	x.httpCode = code
 }
 
-func HandelResponse(r Response, c *gin.Context) {
-	switch r.(type) {
-	case *StringResp:
-		c.Abort()
-		c.String(r.GetHttpCode(), "%s", r.GetBody())
-		c.Next()
-		break
-	case *JsonResp:
-		c.Abort()
-		c.JSON(r.GetHttpCode(), gin.H{
-			"code": r.GetCode(),
-			"msg":  r.GetMsg(),
-			"data": r.GetBody(),
-		})
-		c.Next()
-		break
-	case *XmlResp:
-		c.Abort()
-		c.XML(r.GetHttpCode(), r.GetBody())
-		c.Next()
-		break
-	}
+func addRespLog(response Response, c *gin.Context) {
+	r, _ := json.Marshal(response.GetBody())
+	logger.System("Response", "method", c.Request.Method, "url", c.Request.URL.String(), "post", c.Request.PostForm, "res", map[string]any{
+		"code": response.GetCode(),
+		"msg":  response.GetMsg(),
+		"data": string(r),
+	})
 }

@@ -21,18 +21,25 @@ func RegisterUser(content *gin.Context) {
 	search["nickname"] = nickname
 	rep := logic2.SearchUser(search)
 	if rep.Id > 0 {
-		(&resp.JsonResp{Code: resp.ReSuccess, Message: "当前用户已注册", Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReSuccess, Message: "当前用户已注册", Body: nil}).Response(content)
+		return
 	}
 
 	user := model2.User{
 		Nickname: nickname,
 		Password: password,
 	}
-	uid := user.DoRegister()
-	if uid == 0 {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "注册失败", Body: nil}).Response()
+	uid, err := user.DoRegister()
+	if err != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "注册异常", Body: map[string]any{"error": err.Error()}}).Response(content)
+		return
 	}
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "注册成功", Body: map[string]any{"user": user}}).Response()
+	if uid == 0 {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "注册失败", Body: nil}).Response(content)
+		return
+	}
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "注册成功", Body: map[string]any{"user": user}}).Response(content)
+	return
 }
 
 // Login 用户登陆
@@ -47,24 +54,30 @@ func Login(content *gin.Context) {
 
 	userInfo := logic2.SearchUser(s)
 	if userInfo.Id <= 0 {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response()
-		content.Abort()
+		(&resp.JsonResp{Code: resp.ReFail, Message: "账号或密码错误", Body: nil}).Response(content)
 		return
 	}
 	data := make(map[string]interface{})
 
-	j, userJwt := token.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
+	j, userJwt, err := token.GenerateJwt(userInfo.Id, jwt.IndexJwtType, 0)
+	if err != nil {
+		(&resp.JsonResp{Code: resp.ReFail, Message: "token 获取失败", Body: nil}).Response(content)
+		return
+	}
 	userJwt.Token = ""
 	data["token"] = j
 	data["token_info"] = userJwt
 	data["user"] = userInfo
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "登陆成功", Body: data}).Response(content)
+	return
 }
 
 func LoadUser(content *gin.Context) {
 	user, err := context.GetIndexUserInfo(content)
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: err.Error(), Body: nil}).Response()
+		(&resp.JsonResp{Code: resp.ReFail, Message: err.Error(), Body: nil}).Response(content)
+		return
 	}
-	(&resp.JsonResp{Code: resp.ReSuccess, Message: "success", Body: map[string]any{"user": user}}).Response()
+	(&resp.JsonResp{Code: resp.ReSuccess, Message: "success", Body: map[string]any{"user": user}}).Response(content)
+	return
 }

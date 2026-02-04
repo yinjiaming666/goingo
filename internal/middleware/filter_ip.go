@@ -23,7 +23,8 @@ func FilterIp(allowIp []string) func(c *gin.Context) {
 			return
 		}
 		if k, _ := conv.InSlice(allowIp, ip); k < 0 {
-			(&resp.JsonResp{Code: resp.ReIllegalIp, Message: "illegal IP", Body: map[string]any{"ip": ip}}).Response()
+			(&resp.JsonResp{Code: resp.ReIllegalIp, Message: "illegal IP", Body: map[string]any{"ip": ip}}).Response(c)
+			return
 		}
 		c.Next()
 	}

@@ -4,14 +4,14 @@ import (
 	model2 "app/internal/model"
 	"app/tools/conv"
 	"app/tools/jwt"
-	"app/tools/resp"
+	"app/tools/logger"
 	"context"
 	"errors"
 	"fmt"
 	"time"
 )
 
-func GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt) {
+func GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt, error) {
 	j, userJwt := jwt.CreateJwt(uid, jType, exTime)
 	tokenModel := new(model2.Token)
 	tokenModel.Uid = userJwt.Uid
@@ -37,16 +37,18 @@ func GenerateJwt(uid uint, jType jwt.JType, exTime int64) (string, *jwt.UserJwt)
 	m["type"], _ = conv.Conv[string](m["type"])
 	_, err := model2.RedisClient.HMSet(context.Background(), cacheKey, m).Result()
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "jwt 缓存失败", Body: nil}).Response()
+		logger.Error("jwt 缓存失败", "err", err.Error())
+		return "", nil, err
 	}
 	_, err = model2.RedisClient.Set(context.Background(), uidTokenKey, cacheKey, -1).Result()
 	if err != nil {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "uidTokenKey 缓存失败", Body: nil}).Response()
+		logger.Error("uidTokenKey 缓存失败", "err", err.Error())
+		return "", nil, err
 	}
 	if exTime > 0 {
 		model2.RedisClient.Expire(context.Background(), cacheKey, time.Duration(exTime)*time.Second)
 	}
-	return j, userJwt
+	return j, userJwt, nil
 }
 
 func CheckJwt(j string) (*jwt.UserJwt, error) {
@@ -74,7 +76,7 @@ func CheckJwt(j string) (*jwt.UserJwt, error) {
 	}
 
 	if userJwt.ExpireTime < time.Now().Unix() {
-		(&resp.JsonResp{Code: resp.ReFail, Message: "token 过期", Body: nil}).Response()
+		return nil, errors.New("token 过期")
 	}
 	return userJwt, nil
 }
