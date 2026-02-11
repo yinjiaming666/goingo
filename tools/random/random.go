@@ -28,6 +28,7 @@ func Number(start, end int) int {
 		end = start
 		start = t
 	}
+	end++
 	return r.Intn(end-start) + start // (end-start)+start
 }
 
